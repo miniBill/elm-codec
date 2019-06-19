@@ -4,27 +4,31 @@
 
 This package allows you to build pairs of JSON encoders (`a -> Value`) and decoders (`Decoder a`), collectively called a `Codec a`.
 
-See an end-to-end example in the `examples/` folder.
-
 ## Design Goals
 
 The design goal is to be as type safe as possible while keeping a nice API.
 Using this package will greatly reduce the risk of unmatched encoders and decoders.
 
-## Example
+The packages re-exposes the `Value` and `Decoder` types from `elm/json`, so you don't need to import them too.
+
+## Examples
+
+### Basic usage ###
 
 ```elm
+import Codec exposing (Codec, Value)
+
 codec : Codec (List Int)
 codec =
     Codec.list Codec.int
 
 encode : List Int -> Json.Encode.Value
-encode =
-    Codec.encoder codec
+encode list =
+    Codec.encoder codec list
 
-decoder : Json.Decoder.Decoder (List Int)
-decoder =
-    Codec.decoder codec
+decodeString : String -> Result Codec.Error (List Int)
+decodeString s =
+    Codec.decodeString codec s
 ```
 
 ## Learning Resources

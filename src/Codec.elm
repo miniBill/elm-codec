@@ -1,9 +1,12 @@
 module Codec exposing
-    ( Codec, decoder, encoder
+    ( Codec, Value
+    , Decoder, decoder, decodeString, decodeValue
+    , Encoder, encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
     , maybe, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, optionalField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
+    , oneOf
     , map
     , constant, recursive
     )
@@ -13,7 +16,17 @@ module Codec exposing
 
 # Definition
 
-@docs Codec, decoder, encoder
+@docs Codec, Value
+
+
+# Decode
+
+@docs Decoder, decoder, decodeString, decodeValue
+
+
+# Encode
+
+@docs Encoder, encoder, encodeToString, encodeToValue
 
 
 # Primitives
@@ -36,6 +49,11 @@ module Codec exposing
 @docs CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
 
 
+# Inconsistent structure
+
+@docs oneOf
+
+
 # Mapping
 
 @docs map
@@ -49,18 +67,36 @@ module Codec exposing
 
 import Array exposing (Array)
 import Dict exposing (Dict)
-import Json.Decode as JD exposing (Decoder)
-import Json.Encode as JE exposing (Value)
+import Json.Decode as JD
+import Json.Encode as JE
 import Set exposing (Set)
+
+
+
+-- DEFINITION
 
 
 {-| A value that knows how to encode and decode JSON values.
 -}
 type Codec a
     = Codec
-        { encoder : a -> Value
+        { encoder : Encoder a
         , decoder : Decoder a
         }
+
+
+type alias Value =
+    JE.Value
+
+
+
+-- DECODE
+
+
+{-| A value that knows how to decode JSON values.
+-}
+type alias Decoder a =
+    JD.Decoder a
 
 
 {-| Extracts the `Decoder` contained inside the `Codec`.
@@ -70,18 +106,44 @@ decoder (Codec m) =
     m.decoder
 
 
+decodeString codec =
+    JD.decodeString (decoder codec)
+
+
+decodeValue codec =
+    JD.decodeValue (decoder codec)
+
+
+
+-- ENCODE
+
+
+{-| A function to encode to JSON.
+-}
+type alias Encoder a =
+    a -> Value
+
+
 {-| Extracts the encoding function contained inside the `Codec`.
 -}
-encoder : Codec a -> a -> Value
+encoder : Codec a -> Encoder a
 encoder (Codec m) =
     m.encoder
+
+
+encodeToString indentation codec =
+    encoder codec >> JE.encode indentation
+
+
+encodeToValue =
+    encoder
 
 
 
 -- BASE
 
 
-base : (a -> Value) -> Decoder a -> Codec a
+base : Encoder a -> Decoder a -> Codec a
 base encoder_ decoder_ =
     Codec
         { encoder = encoder_
@@ -140,7 +202,7 @@ char =
 -- DATA STRUCTURES
 
 
-build : ((b -> Value) -> a -> Value) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
+build : (Encoder b -> Encoder a) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
 build enc dec (Codec codec) =
     Codec
         { encoder = enc codec.encoder
@@ -340,7 +402,7 @@ custom match =
 
 variant :
     String
-    -> ((List Value -> Value) -> a)
+    -> (Encoder (List Value) -> a)
     -> Decoder v
     -> CustomCodec (a -> b) v
     -> CustomCodec b v
@@ -624,7 +686,7 @@ variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
 
 {-| Build a `Codec` for a fully specified custom type.
 -}
-buildCustom : CustomCodec (a -> Value) a -> Codec a
+buildCustom : CustomCodec (Encoder a) a -> Codec a
 buildCustom (CustomCodec am) =
     Codec
         { encoder = \v -> am.match v
@@ -638,6 +700,18 @@ buildCustom (CustomCodec am) =
                         in
                         JD.field "args" <| am.decoder tag <| JD.fail error
                     )
+        }
+
+
+
+-- INCONSISTENT STRUCTURE
+
+
+oneOf : Codec a -> List (Codec a) -> Codec a
+oneOf main alts =
+    Codec
+        { encoder = encoder main
+        , decoder = JD.oneOf <| decoder main :: List.map decoder alts
         }
 
 

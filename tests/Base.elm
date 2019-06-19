@@ -4,8 +4,6 @@ import Codec exposing (Codec)
 import Dict
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
-import Json.Decode as JD exposing (Value)
-import Json.Encode as JE
 import Set
 import Test exposing (Test, describe, fuzz, test)
 
@@ -23,8 +21,7 @@ suite =
             [ test "roundtrips"
                 (\_ ->
                     Codec.constant 632
-                        |> Codec.decoder
-                        |> (\d -> JD.decodeString d "{}")
+                        |> (\d -> Codec.decodeString d "{}")
                         |> Expect.equal (Ok 632)
                 )
             ]
@@ -38,7 +35,7 @@ roundtrips fuzzer codec =
         \value ->
             value
                 |> Codec.encoder codec
-                |> JD.decodeValue (Codec.decoder codec)
+                |> Codec.decodeValue codec
                 |> Expect.equal (Ok value)
 
 
@@ -48,7 +45,7 @@ roundtripsWithin fuzzer codec =
         \value ->
             value
                 |> Codec.encoder codec
-                |> JD.decodeValue (Codec.decoder codec)
+                |> Codec.decodeValue codec
                 |> Result.withDefault -999.1234567
                 |> Expect.within (Expect.Relative 0.000001) value
 
