@@ -1,7 +1,7 @@
 module Codec exposing
     ( Codec, Value, Error
     , Decoder, decoder, decodeString, decodeValue
-    , Encoder, encoder, encodeToString, encodeToValue
+    , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
     , maybe, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, optionalField, buildObject
@@ -26,7 +26,7 @@ module Codec exposing
 
 # Encode
 
-@docs Encoder, encoder, encodeToString, encodeToValue
+@docs encoder, encodeToString, encodeToValue
 
 
 # Primitives
@@ -80,7 +80,7 @@ import Set exposing (Set)
 -}
 type Codec a
     = Codec
-        { encoder : Encoder a
+        { encoder : a -> Value
         , decoder : Decoder a
         }
 
@@ -138,15 +138,9 @@ decodeValue codec =
 -- ENCODE
 
 
-{-| A function to encode to JSON.
--}
-type alias Encoder a =
-    a -> Value
-
-
 {-| Extracts the encoding function contained inside the `Codec`.
 -}
-encoder : Codec a -> Encoder a
+encoder : Codec a -> a -> Value
 encoder (Codec m) =
     m.encoder
 
@@ -170,7 +164,7 @@ encodeToValue codec =
 -- BASE
 
 
-base : Encoder a -> Decoder a -> Codec a
+base : (a -> Value) -> Decoder a -> Codec a
 base encoder_ decoder_ =
     Codec
         { encoder = encoder_
@@ -229,7 +223,7 @@ char =
 -- DATA STRUCTURES
 
 
-build : (Encoder b -> Encoder a) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
+build : ((b -> Value) -> (a -> Value)) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
 build enc dec (Codec codec) =
     Codec
         { encoder = enc codec.encoder
@@ -429,7 +423,7 @@ custom match =
 
 variant :
     String
-    -> (Encoder (List Value) -> a)
+    -> ((List Value -> Value) -> a)
     -> Decoder v
     -> CustomCodec (a -> b) v
     -> CustomCodec b v
@@ -713,7 +707,7 @@ variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
 
 {-| Build a `Codec` for a fully specified custom type.
 -}
-buildCustom : CustomCodec (Encoder a) a -> Codec a
+buildCustom : CustomCodec (a -> Value) a -> Codec a
 buildCustom (CustomCodec am) =
     Codec
         { encoder = \v -> am.match v
