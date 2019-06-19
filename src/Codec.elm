@@ -707,6 +707,13 @@ buildCustom (CustomCodec am) =
 -- INCONSISTENT STRUCTURE
 
 
+{-| Try a set of decoders (in order).
+The first argument is used for encoding and decoding, the list of other codecs is used as a fallback while decoding.
+
+This is particularly useful for backwards compatibility. You would pass the current codec as the first argument,
+and the old ones (eventually `map`ped) as a fallback list to use while decoding.
+
+-}
 oneOf : Codec a -> List (Codec a) -> Codec a
 oneOf main alts =
     Codec
