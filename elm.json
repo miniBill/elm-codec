@@ -2,11 +2,8 @@
     "type": "package",
     "name": "miniBill/elm-codec",
     "summary": "Build JSON encoders and decoders with minimal boilerplate",
-    "source-directories": [
-        "src"
-    ],
     "license": "MIT",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "exposed-modules": [
         "Codec"
     ],
@@ -16,7 +13,7 @@
         "elm/json": "1.0.0 <= v < 2.0.0"
     },
     "test-dependencies": {
-        "elm-explorations/test": "1.0.0 <= v < 2.0.0",
-        "elm/random": "1.0.0 <= v < 2.0.0"
+        "elm/random": "1.0.0 <= v < 2.0.0",
+        "elm-explorations/test": "1.0.0 <= v < 2.0.0"
     }
 }
