@@ -1,5 +1,5 @@
 module Codec exposing
-    ( Codec, Value
+    ( Codec, Value, Error
     , Decoder, decoder, decodeString, decodeValue
     , Encoder, encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
@@ -16,7 +16,7 @@ module Codec exposing
 
 # Definition
 
-@docs Codec, Value
+@docs Codec, Value, Error
 
 
 # Decode
@@ -85,8 +85,19 @@ type Codec a
         }
 
 
+{-| Represents a JavaScript value.
+-}
 type alias Value =
     JE.Value
+
+
+{-| A structured error describing exactly how the decoder failed. You can use
+this to create more elaborate visualizations of a decoder problem. For example,
+you could show the entire JSON object and show the part causing the failure in
+red.
+-}
+type alias Error =
+    JD.Error
 
 
 
@@ -106,10 +117,19 @@ decoder (Codec m) =
     m.decoder
 
 
+{-| Parse the given string into a JSON value and then run the `Codec` on it.
+This will fail if the string is not well-formed JSON or if the `Codec`
+fails for some reason.
+-}
+decodeString : Codec a -> String -> Result Error a
 decodeString codec =
     JD.decodeString (decoder codec)
 
 
+{-| Run a `Codec` to decode some JSON `Value`. You can send these JSON values
+through ports, so that is probably the main time you would use this function.
+-}
+decodeValue : Codec a -> Value -> Result Error a
 decodeValue codec =
     JD.decodeValue (decoder codec)
 
@@ -131,12 +151,19 @@ encoder (Codec m) =
     m.encoder
 
 
+{-| Convert a value into a prettified JSON string. The first argument specifies
+the amount of indentation in the result string.
+-}
+encodeToString : Int -> Codec a -> a -> String
 encodeToString indentation codec =
     encoder codec >> JE.encode indentation
 
 
-encodeToValue =
-    encoder
+{-| Convert a value into a Javascript `Value`.
+-}
+encodeToValue : Codec a -> a -> Value
+encodeToValue codec =
+    encoder codec
 
 
 
