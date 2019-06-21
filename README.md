@@ -22,7 +22,7 @@ codec : Codec (List Int)
 codec =
     Codec.list Codec.int
 
-encode : List Int -> Json.Encode.Value
+encode : List Int -> Value
 encode list =
     Codec.encoder codec list
 
