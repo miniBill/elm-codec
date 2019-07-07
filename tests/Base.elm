@@ -237,6 +237,36 @@ maybeTests =
     ]
 
 
+type RecA
+    = RecA (Maybe RecB)
+
+
+type RecB
+    = RecB (Result () RecA)
+
+
+intToRec : Int -> RecA
+intToRec =
+    let
+        a n =
+            RecA <|
+                if n > 0 then
+                    Just (b <| n - 1)
+
+                else
+                    Nothing
+
+        b n =
+            RecB <|
+                if n > 0 then
+                    Ok (a <| n - 1)
+
+                else
+                    Err ()
+    in
+    a
+
+
 recursiveTests : List Test
 recursiveTests =
     [ describe "list"
@@ -256,5 +286,23 @@ recursiveTests =
                         |> Codec.variant2 "(::)" (::) Codec.int c
                         |> Codec.buildCustom
                 )
+        ]
+    , describe "coRecursion"
+        [ roundtrips (Fuzz.intRange 0 200 |> Fuzz.map intToRec) <|
+            Tuple.first <|
+                Codec.recursive2
+                    (\( a, b ) ->
+                        ( Codec.map
+                            RecA
+                            (\(RecA v) -> v)
+                          <|
+                            Codec.maybe b
+                        , Codec.map
+                            RecB
+                            (\(RecB v) -> v)
+                          <|
+                            Codec.result (Codec.constant ()) a
+                        )
+                    )
         ]
     ]

@@ -8,7 +8,7 @@ module Codec exposing
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
-    , constant, recursive
+    , constant, recursive, recursive2
     )
 
 {-| A `Codec a` contain a JSON `Decoder a` and the corresponding `a -> Value` encoder.
@@ -61,7 +61,7 @@ module Codec exposing
 
 # Fancy Codecs
 
-@docs constant, recursive
+@docs constant, recursive, recursive2
 
 -}
 
@@ -773,6 +773,25 @@ recursive f =
             }
     in
     f <| Codec step
+
+
+{-| Create a `Codec` for two recursive data structures.
+The argument to the function you need to pass is a tuple with the fully formed `Codec`s.
+-}
+recursive2 : (( Codec a, Codec b ) -> ( Codec a, Codec b )) -> ( Codec a, Codec b )
+recursive2 f =
+    let
+        stepl =
+            { decoder = JD.lazy (\_ -> decoder <| Tuple.first <| recursive2 f)
+            , encoder = \value -> encoder (Tuple.first <| recursive2 f) value
+            }
+
+        stepr =
+            { decoder = JD.lazy (\_ -> decoder <| Tuple.second <| recursive2 f)
+            , encoder = \value -> encoder (Tuple.second <| recursive2 f) value
+            }
+    in
+    f ( Codec stepl, Codec stepr )
 
 
 {-| Create a `Codec` that produces null as JSON and always decodes as the same value.
