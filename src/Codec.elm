@@ -8,7 +8,7 @@ module Codec exposing
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
-    , constant, recursive
+    , constant, recursive, fail, andThen, lazy, value, build
     )
 
 {-| A `Codec a` contain a JSON `Decoder a` and the corresponding `a -> Value` encoder.
@@ -61,7 +61,7 @@ module Codec exposing
 
 # Fancy Codecs
 
-@docs constant, recursive
+@docs constant, recursive, fail, andThen, lazy, value, build
 
 -}
 
@@ -164,8 +164,11 @@ encodeToValue codec =
 -- BASE
 
 
-base : (a -> Value) -> Decoder a -> Codec a
-base encoder_ decoder_ =
+{-| Build your own custom `Codec`.
+Useful if you have pre-existing `Decoder`s you need to use.
+-}
+build : (a -> Value) -> Decoder a -> Codec a
+build encoder_ decoder_ =
     Codec
         { encoder = encoder_
         , decoder = decoder_
@@ -176,35 +179,35 @@ base encoder_ decoder_ =
 -}
 string : Codec String
 string =
-    base JE.string JD.string
+    build JE.string JD.string
 
 
 {-| `Codec` between a JSON boolean and an Elm `Bool`
 -}
 bool : Codec Bool
 bool =
-    base JE.bool JD.bool
+    build JE.bool JD.bool
 
 
 {-| `Codec` between a JSON number and an Elm `Int`
 -}
 int : Codec Int
 int =
-    base JE.int JD.int
+    build JE.int JD.int
 
 
 {-| `Codec` between a JSON number and an Elm `Float`
 -}
 float : Codec Float
 float =
-    base JE.float JD.float
+    build JE.float JD.float
 
 
 {-| `Codec` between a JSON string of length 1 and an Elm `Char`
 -}
 char : Codec Char
 char =
-    base
+    build
         (String.fromChar >> JE.string)
         (JD.string
             |> JD.andThen
@@ -223,8 +226,8 @@ char =
 -- DATA STRUCTURES
 
 
-build : ((b -> Value) -> (a -> Value)) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
-build enc dec (Codec codec) =
+composite : ((b -> Value) -> (a -> Value)) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
+composite enc dec (Codec codec) =
     Codec
         { encoder = enc codec.encoder
         , decoder = dec codec.decoder
@@ -252,21 +255,21 @@ maybe codec =
 -}
 list : Codec a -> Codec (List a)
 list =
-    build JE.list JD.list
+    composite JE.list JD.list
 
 
 {-| `Codec` between a JSON array and an Elm `Array`.
 -}
 array : Codec a -> Codec (Array a)
 array =
-    build JE.array JD.array
+    composite JE.array JD.array
 
 
 {-| `Codec` between a JSON object and an Elm `Dict`.
 -}
 dict : Codec a -> Codec (Dict String a)
 dict =
-    build
+    composite
         (\e -> JE.object << Dict.toList << Dict.map (\_ -> e))
         JD.dict
 
@@ -275,7 +278,7 @@ dict =
 -}
 set : Codec comparable -> Codec (Set comparable)
 set =
-    build
+    composite
         (\e -> JE.list e << Set.toList)
         (JD.map Set.fromList << JD.list)
 
@@ -325,8 +328,8 @@ triple m1 m2 m3 =
 result : Codec error -> Codec value -> Codec (Result error value)
 result errorCodec valueCodec =
     custom
-        (\ferr fok value ->
-            case value of
+        (\ferr fok v ->
+            case v of
                 Err err ->
                     ferr err
 
@@ -761,18 +764,34 @@ map go back codec =
 -- FANCY
 
 
+{-| Ignore the JSON and make the decoder fail. This is handy when used with
+`oneOf` or `andThen` where you want to give a custom error message in some
+case. The encoder will produce `null`.
+-}
+fail : String -> Codec a
+fail msg =
+    Codec
+        { decoder = JD.fail msg
+        , encoder = always JE.null
+        }
+
+
+{-| Create codecs that depend on previous results.
+-}
+andThen : (b -> a) -> (a -> Codec b) -> Codec a -> Codec b
+andThen enc dec c =
+    Codec
+        { decoder = decoder c |> JD.andThen (dec >> decoder)
+        , encoder = encoder c << enc
+        }
+
+
 {-| Create a `Codec` for a recursive data structure.
 The argument to the function you need to pass is the fully formed `Codec`.
 -}
 recursive : (Codec a -> Codec a) -> Codec a
 recursive f =
-    let
-        step =
-            { decoder = JD.lazy (\_ -> decoder <| recursive f)
-            , encoder = \value -> encoder (recursive f) value
-            }
-    in
-    f <| Codec step
+    f <| lazy (\_ -> recursive f)
 
 
 {-| Create a `Codec` that produces null as JSON and always decodes as the same value.
@@ -782,4 +801,25 @@ constant default_ =
     Codec
         { decoder = JD.succeed default_
         , encoder = \_ -> JE.null
+        }
+
+
+{-| This is useful for recursive structures that are not easily modeled with `recursive`.
+Have a look at the Json.Decode docs for examples.
+-}
+lazy : (() -> Codec a) -> Codec a
+lazy f =
+    Codec
+        { decoder = JD.lazy (\_ -> decoder <| f ())
+        , encoder = \v -> encoder (f ()) v
+        }
+
+
+{-| Create a `Codec` that doesn't transform the JSON value, just brings it to and from Elm as a `Value`.
+-}
+value : Codec Value
+value =
+    Codec
+        { encoder = identity
+        , decoder = JD.value
         }

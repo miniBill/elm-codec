@@ -2,7 +2,7 @@ module Base exposing (roundtrips, suite)
 
 import Codec exposing (Codec)
 import Dict
-import Expect exposing (Expectation)
+import Expect
 import Fuzz exposing (Fuzzer)
 import Set
 import Test exposing (Test, describe, fuzz, test)
@@ -26,6 +26,7 @@ suite =
                 )
             ]
         , describe "recursive" recursiveTests
+        , describe "map,andThen" mapAndThenTests
         ]
 
 
@@ -256,5 +257,14 @@ recursiveTests =
                         |> Codec.variant2 "(::)" (::) Codec.int c
                         |> Codec.buildCustom
                 )
+        ]
+    ]
+
+
+mapAndThenTests : List Test
+mapAndThenTests =
+    [ describe "Codec.map"
+        [ roundtrips (Fuzz.intRange -10000 10000) <|
+            Codec.map (\x -> x - 1) (\x -> x + 1) Codec.int
         ]
     ]
