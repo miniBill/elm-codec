@@ -409,7 +409,7 @@ buildObject (ObjectCodec om) =
 type CustomCodec match v
     = CustomCodec
         { match : match
-        , decoder : String -> Decoder v -> Decoder v
+        , decoder : Dict String (Decoder v)
         }
 
 
@@ -420,7 +420,7 @@ custom : match -> CustomCodec match value
 custom match =
     CustomCodec
         { match = match
-        , decoder = \_ -> identity
+        , decoder = Dict.empty
         }
 
 
@@ -437,17 +437,10 @@ variant name matchPiece decoderPiece (CustomCodec am) =
                 [ ( "tag", JE.string name )
                 , ( "args", JE.list identity v )
                 ]
-
-        decoder_ tag orElse =
-            if tag == name then
-                decoderPiece
-
-            else
-                am.decoder tag orElse
     in
     CustomCodec
         { match = am.match <| matchPiece enc
-        , decoder = decoder_
+        , decoder = Dict.insert name decoderPiece am.decoder
         }
 
 
@@ -718,11 +711,12 @@ buildCustom (CustomCodec am) =
             JD.field "tag" JD.string
                 |> JD.andThen
                     (\tag ->
-                        let
-                            error =
-                                "tag " ++ tag ++ "did not match"
-                        in
-                        JD.field "args" <| am.decoder tag <| JD.fail error
+                        case Dict.get tag am.decoder of
+                            Nothing ->
+                                JD.fail <| "tag " ++ tag ++ "did not match"
+
+                            Just dec ->
+                                JD.field "args" dec
                     )
         }
 
