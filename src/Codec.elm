@@ -4,7 +4,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
     , maybe, list, array, dict, set, tuple, triple, result
-    , ObjectCodec, object, field, optionalField, buildObject
+    , ObjectCodec, object, field, maybeField, nullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
@@ -41,7 +41,7 @@ module Codec exposing
 
 # Object Primitives
 
-@docs ObjectCodec, object, field, optionalField, buildObject
+@docs ObjectCodec, object, field, maybeField, nullableField, buildObject
 
 
 # Custom Types
@@ -377,17 +377,35 @@ field name getter codec (ObjectCodec ocodec) =
 
 {-| Specify the name getter and `Codec` for an optional field.
 This is particularly useful for evolving your `Codec`s.
+If the field is not present in the input then it gets decoded to `Nothing`.
+If the optional field's value is `Nothing` then the resulting object will not contain that field.
 -}
-optionalField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
-optionalField name getter codec (ObjectCodec ocodec) =
+maybeField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
+maybeField name getter codec (ObjectCodec ocodec) =
     ObjectCodec
-        { encoder = \v -> ( name, encoder (maybe codec) <| getter v ) :: ocodec.encoder v
+        { encoder =
+            \v ->
+                case getter v of
+                    Just present ->
+                        ( name, encoder codec present ) :: ocodec.encoder v
+
+                    Nothing ->
+                        ocodec.encoder v
         , decoder =
             decoder codec
                 |> JD.field name
                 |> JD.maybe
                 |> JD.map2 (\f x -> f x) ocodec.decoder
         }
+
+
+{-| Specify the name getter and `Codec` for a required field, whose value can be `null`.
+If the field is not present in the input then the decoding fails.
+If the field's value is `Nothing` then the resulting object will contain the field with a `null` value.
+-}
+nullableField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
+nullableField name getter codec ocodec =
+    field name getter (maybe codec) ocodec
 
 
 {-| Create a `Codec` from a fully specified `ObjectCodec`.
@@ -772,8 +790,8 @@ fail msg =
 
 {-| Create codecs that depend on previous results.
 -}
-andThen : (b -> a) -> (a -> Codec b) -> Codec a -> Codec b
-andThen enc dec c =
+andThen : (a -> Codec b) -> (b -> a) -> Codec a -> Codec b
+andThen dec enc c =
     Codec
         { decoder = decoder c |> JD.andThen (dec >> decoder)
         , encoder = encoder c << enc

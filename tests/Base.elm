@@ -4,6 +4,7 @@ import Codec exposing (Codec)
 import Dict
 import Expect
 import Fuzz exposing (Fuzzer)
+import Json.Encode as JE
 import Set
 import Test exposing (Test, describe, fuzz, test)
 
@@ -133,6 +134,48 @@ objectTests =
                 |> Codec.field "b" .b Codec.int
                 |> Codec.buildObject
             )
+        ]
+    , describe "nullableField vs maybeField" <|
+        let
+            nullableCodec =
+                Codec.object
+                    (\f -> { f = f })
+                    |> Codec.nullableField "f" .f Codec.int
+                    |> Codec.buildObject
+
+            maybeCodec =
+                Codec.object
+                    (\f -> { f = f })
+                    |> Codec.maybeField "f" .f Codec.int
+                    |> Codec.buildObject
+        in
+        [ test "a nullableField is required" <|
+            \_ ->
+                "{}"
+                    |> Codec.decodeString nullableCodec
+                    |> (\r ->
+                            case r of
+                                Ok _ ->
+                                    Expect.fail "Should have failed"
+
+                                Err _ ->
+                                    Expect.pass
+                       )
+        , test "a nullableField produces a field with a null value on encoding Nothing" <|
+            \_ ->
+                { f = Nothing }
+                    |> Codec.encodeToString 0 nullableCodec
+                    |> Expect.equal "{\"f\":null}"
+        , test "a maybeField is optional" <|
+            \_ ->
+                "{}"
+                    |> Codec.decodeString maybeCodec
+                    |> Expect.equal (Ok { f = Nothing })
+        , test "a maybeField doesn't produce a field on encoding Nothing" <|
+            \_ ->
+                { f = Nothing }
+                    |> Codec.encodeToString 0 maybeCodec
+                    |> Expect.equal "{}"
         ]
     ]
 

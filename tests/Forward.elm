@@ -16,7 +16,7 @@ suite =
         [ -- describe "Adding a variant" addVariant
           --, describe "Remove parameters" removeParameters
           describe "Any to constant" anyToConstant
-        , describe "Add optional field" addOptionalField
+        , describe "Add optional field" addMaybeField
         ]
 
 
@@ -107,12 +107,12 @@ point2_5Codec =
     Codec.object Point2_5
         |> Codec.field "x" .x Codec.int
         |> Codec.field "y" .y Codec.int
-        |> Codec.optionalField "z" .z Codec.int
+        |> Codec.maybeField "z" .z Codec.int
         |> Codec.buildObject
 
 
-addOptionalField : List Test
-addOptionalField =
+addMaybeField : List Test
+addMaybeField =
     both
         point2Fuzzer
         (\{ x, y } -> { x = x, y = y, z = Nothing })
