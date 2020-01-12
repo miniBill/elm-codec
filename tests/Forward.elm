@@ -2,12 +2,10 @@ module Forward exposing (suite)
 
 import Base
 import Codec exposing (Codec)
-import Dict
-import Expect exposing (Expectation)
+import Expect
 import Fuzz exposing (Fuzzer)
 import Json.Decode as JD
-import Set
-import Test exposing (Test, describe, fuzz, test)
+import Test exposing (Test, describe, fuzz)
 
 
 suite : Test
@@ -81,10 +79,12 @@ type alias Point2 =
     }
 
 
+point2Fuzzer : Fuzzer Point2
 point2Fuzzer =
     Fuzz.map2 Point2 Fuzz.int Fuzz.int
 
 
+point2Codec : Codec Point2
 point2Codec =
     Codec.object Point2
         |> Codec.field "x" .x Codec.int
@@ -99,10 +99,12 @@ type alias Point2_5 =
     }
 
 
+point2_5Fuzzer : Fuzzer Point2_5
 point2_5Fuzzer =
     Fuzz.map3 Point2_5 Fuzz.int Fuzz.int (Fuzz.maybe Fuzz.int)
 
 
+point2_5Codec : Codec Point2_5
 point2_5Codec =
     Codec.object Point2_5
         |> Codec.field "x" .x Codec.int

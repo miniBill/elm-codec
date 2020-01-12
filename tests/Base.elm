@@ -4,7 +4,6 @@ import Codec exposing (Codec)
 import Dict
 import Expect
 import Fuzz exposing (Fuzzer)
-import Json.Encode as JE
 import Set
 import Test exposing (Test, describe, fuzz, test)
 
