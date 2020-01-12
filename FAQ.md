@@ -63,11 +63,11 @@ semaphoreCodec =
 Old `Value`s will be parsed fine by new `Codec`s if you:
 * add new `variant`s to custom types,
 * remove (from the end) parameters from `variant`s,
-* change any `Codec` to a `constant` one or
+* change any `Codec` to a `succeed` one or
 * add optional fields (`maybeField`) to records.
 
 New `Value`s will be parsed fine by old `Codec`s if you:
 * remove `variant`s from custom types,
 * append parameters to `variant`s ,
-* change a `constant` `Codec` to any other one or
+* change a `succeed` `Codec` to any other one or
 * remove fields from records.

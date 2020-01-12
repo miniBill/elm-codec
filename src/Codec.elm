@@ -8,7 +8,7 @@ module Codec exposing
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
-    , constant, recursive, fail, andThen, lazy, value, build
+    , succeed, recursive, fail, andThen, lazy, value, build, constant
     )
 
 {-| A `Codec a` contain a JSON `Decoder a` and the corresponding `a -> Value` encoder.
@@ -61,7 +61,7 @@ module Codec exposing
 
 # Fancy Codecs
 
-@docs constant, recursive, fail, andThen, lazy, value, build
+@docs succeed, recursive, fail, andThen, lazy, value, build, constant
 
 -}
 
@@ -807,6 +807,16 @@ recursive f =
 
 
 {-| Create a `Codec` that produces null as JSON and always decodes as the same value.
+-}
+succeed : a -> Codec a
+succeed default_ =
+    Codec
+        { decoder = JD.succeed default_
+        , encoder = \_ -> JE.null
+        }
+
+
+{-| Create a `Codec` that produces null as JSON and always decodes as the same value. Obsolete alias of `succeed`, will be removed in a future version.
 -}
 constant : a -> Codec a
 constant default_ =

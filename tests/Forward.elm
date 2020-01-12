@@ -15,7 +15,7 @@ suite =
     describe "Testing forward and backward compat"
         [ -- describe "Adding a variant" addVariant
           --, describe "Remove parameters" removeParameters
-          describe "Any to constant" anyToConstant
+          describe "Any to succeed" anyToSucceed
         , describe "Add optional field" addMaybeField
         ]
 
@@ -69,9 +69,9 @@ both oldFuzzer oldToNew oldCodec newFuzzer newToOld newCodec =
     ]
 
 
-anyToConstant : List Test
-anyToConstant =
-    [ forward Fuzz.string (always 3) Codec.string (Codec.constant 3)
+anyToSucceed : List Test
+anyToSucceed =
+    [ forward Fuzz.string (always 3) Codec.string (Codec.succeed 3)
     ]
 
 

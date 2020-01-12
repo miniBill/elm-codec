@@ -18,10 +18,10 @@ suite =
         , describe "Custom" customTests
         , describe "bimap" bimapTests
         , describe "maybe" maybeTests
-        , describe "constant"
+        , describe "succeed"
             [ test "roundtrips"
                 (\_ ->
-                    Codec.constant 632
+                    Codec.succeed 632
                         |> (\d -> Codec.decodeString d "{}")
                         |> Expect.equal (Ok 632)
                 )
