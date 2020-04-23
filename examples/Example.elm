@@ -39,16 +39,16 @@ type Semaphore
 semaphoreCodec : Codec Semaphore
 semaphoreCodec =
     Codec.custom
-        (\fred fyellow fgreen value ->
+        (\red yellow green value ->
             case value of
                 Red i s ->
-                    fred i s
+                    red i s
 
                 Yellow f ->
-                    fyellow f
+                    yellow f
 
                 Green ->
-                    fgreen
+                    green
         )
         |> Codec.variant2 "Red" Red Codec.int Codec.string
         |> Codec.variant1 "Yellow" Yellow Codec.float

@@ -356,6 +356,30 @@ type ObjectCodec a b
 
 {-| Start creating a `Codec` for an object. You should pass the main constructor as argument.
 If you don't have one (for example it's a simple type with no name), you should pass a function that given the field values builds an object.
+
+Example with constructor:
+
+    type alias Point =
+        { x : Float
+        , y : Float
+        }
+
+    pointCodec : Codec Point
+    pointCodec =
+        Codec.object Point
+            |> Codec.field "x" .x Codec.float
+            |> Codec.field "y" .y Codec.float
+            |> Codec.buildObject
+
+Example without constructor:
+
+    pointCodec : Codec { x : Int, y : Bool }
+    pointCodec =
+        Codec.object (\x y -> { x = x, y = y })
+            |> Codec.field "x" .x Codec.int
+            |> Codec.field "y" .y Codec.bool
+            |> Codec.buildObject
+
 -}
 object : b -> ObjectCodec a b
 object ctor =
@@ -365,7 +389,10 @@ object ctor =
         }
 
 
-{-| Specify the name getter and `Codec` for a field.
+{-| Specify the name, getter and `Codec` for a field.
+
+The name is only used as the field name in the resulting JSON, and has no impact on the Elm side.
+
 -}
 field : String -> (a -> f) -> Codec f -> ObjectCodec a (f -> b) -> ObjectCodec a b
 field name getter codec (ObjectCodec ocodec) =
@@ -376,9 +403,12 @@ field name getter codec (ObjectCodec ocodec) =
 
 
 {-| Specify the name getter and `Codec` for an optional field.
+
 This is particularly useful for evolving your `Codec`s.
+
 If the field is not present in the input then it gets decoded to `Nothing`.
 If the optional field's value is `Nothing` then the resulting object will not contain that field.
+
 -}
 maybeField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
 maybeField name getter codec (ObjectCodec ocodec) =
@@ -400,8 +430,12 @@ maybeField name getter codec (ObjectCodec ocodec) =
 
 
 {-| Specify the name getter and `Codec` for a required field, whose value can be `null`.
-If the field is not present in the input then the decoding fails.
+
+If the field is not present in the input then _the decoding fails_.
 If the field's value is `Nothing` then the resulting object will contain the field with a `null` value.
+
+This is a shorthand for a field having a codec built using `Codec.maybe`.
+
 -}
 nullableField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
 nullableField name getter codec ocodec =
@@ -432,7 +466,33 @@ type CustomCodec match v
 
 
 {-| Starts building a `Codec` for a custom type.
-You need to pass a pattern matching function, see the examples and FAQ for details.
+
+You need to pass a pattern matching function, built like this:
+
+    type Semaphore
+        = Red Int String
+        | Yellow Float
+        | Green
+
+    semaphoreCodec : Codec Semaphore
+    semaphoreCodec =
+        Codec.custom
+            (\red yellow green value ->
+                case value of
+                    Red i s ->
+                        red i s
+
+                    Yellow f ->
+                        yellow f
+
+                    Green ->
+                        green
+            )
+            |> Codec.variant2 "Red" Red Codec.int Codec.string
+            |> Codec.variant1 "Yellow" Yellow Codec.float
+            |> Codec.variant0 "Green" Green
+            |> Codec.buildCustom
+
 -}
 custom : match -> CustomCodec match value
 custom match =
@@ -462,7 +522,7 @@ variant name matchPiece decoderPiece (CustomCodec am) =
         }
 
 
-{-| Define a variant with 0 parameters for a custom type.
+{-| Define a variant with 0 parameters for a custom type. The first argument is
 -}
 variant0 :
     String
