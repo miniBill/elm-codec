@@ -447,7 +447,7 @@ nullableField name getter codec ocodec =
 buildObject : ObjectCodec a a -> Codec a
 buildObject (ObjectCodec om) =
     Codec
-        { encoder = \v -> JE.object <| om.encoder v
+        { encoder = \v -> JE.object <| List.reverse <| om.encoder v
         , decoder = om.decoder
         }
 
