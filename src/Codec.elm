@@ -879,11 +879,8 @@ succeed default_ =
 {-| Create a `Codec` that produces null as JSON and always decodes as the same value. Obsolete alias of `succeed`, will be removed in a future version.
 -}
 constant : a -> Codec a
-constant default_ =
-    Codec
-        { decoder = JD.succeed default_
-        , encoder = \_ -> JE.null
-        }
+constant =
+    succeed
 
 
 {-| This is useful for recursive structures that are not easily modeled with `recursive`.
