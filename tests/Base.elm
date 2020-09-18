@@ -1,6 +1,7 @@
 module Base exposing (roundtrips, suite)
 
 import Codec exposing (Codec)
+import Codec.SumType as ST exposing (SumTypeCodec)
 import Dict
 import Expect
 import Fuzz exposing (Fuzzer)
@@ -15,6 +16,7 @@ suite =
         , describe "Containers" containersTests
         , describe "Object" objectTests
         , describe "Custom" customTests
+        , describe "SumType" sumTypeTests
         , describe "bimap" bimapTests
         , describe "maybe" maybeTests
         , describe "succeed"
@@ -224,6 +226,62 @@ customTests =
                     |> Codec.variant0 "Nothing" Nothing
                     |> Codec.variant1 "Just" Just Codec.int
                     |> Codec.buildCustom
+
+            fuzzers =
+                [ ( "1st ctor", Fuzz.constant Nothing )
+                , ( "2nd ctor", Fuzz.map Just Fuzz.int )
+                ]
+        in
+        fuzzers
+            |> List.map
+                (\( name, fuzz ) ->
+                    describe name
+                        [ roundtrips fuzz codec ]
+                )
+    ]
+
+
+sumTypeTests : List Test
+sumTypeTests =
+    [ describe "with 1 ctor, 0 args"
+        [ roundtrips (Fuzz.constant ())
+            (ST.sumType
+                (\f v ->
+                    case v of
+                        () ->
+                            f
+                )
+                |> ST.variant0 "()" ()
+                |> ST.buildSumType
+            )
+        ]
+    , describe "with 1 ctor, 1 arg"
+        [ roundtrips (Fuzz.map Newtype Fuzz.int)
+            (ST.sumType
+                (\f v ->
+                    case v of
+                        Newtype a ->
+                            f a
+                )
+                |> ST.variant1 "Newtype" Newtype ( "first", Codec.int )
+                |> ST.buildSumType
+            )
+        ]
+    , describe "with 2 ctors, 0,1 args" <|
+        let
+            match fnothing fjust value =
+                case value of
+                    Nothing ->
+                        fnothing
+
+                    Just v ->
+                        fjust v
+
+            codec =
+                ST.sumType match
+                    |> ST.variant0 "Nothing" Nothing
+                    |> ST.variant1 "Just" Just ( "just", Codec.int )
+                    |> ST.buildSumType
 
             fuzzers =
                 [ ( "1st ctor", Fuzz.constant Nothing )
