@@ -4,7 +4,7 @@ module Codec.SumType exposing
     , SumTypeCodec
     )
 
-{-| A Codec designed to parse and encode JSON object representing a sum type
+{-| A Codec designed to parse and encode a JSON object representing a sum type
 
 
 # Make a codec
@@ -106,11 +106,11 @@ The first argument is the "tag" used to pick choose this type.
 
 Then `Cash` variant will be encoded to a JSON object like:
 
-    {"tag": "cash"}
+    { "tag": "cash" }
 
 As you may notice, "tag" is the same as the first argument used to define the codec.
 
-**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggest `sumType` is designed to be used when you have more than one variant.
+**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggests `sumType` is designed to be used when you have more than one variant.
 
 -}
 variant0 :
@@ -145,11 +145,11 @@ The second argument is a tuple representing the name of the expected property in
 
 Then `CreditCard "1234"` variant will be encoded to a JSON object like:
 
-    {"tag": "card"
-    ,"number": "1234"
+    { "tag": "card"
+    , "number": "1234"
     }
 
-**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggest `sumType` is designed to be used when you have more than one variant.
+**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggests `sumType` is designed to be used when you have more than one variant.
 
 -}
 variant1 :
@@ -185,12 +185,12 @@ The subsequent arguments are tuples representing the name of the expected proper
 
 Then `Paypal "my@email" "1234"` variant will be encoded to a JSON object like:
 
-    {"tag": "card"
-    ,"email": "my@email"
-    ,"tel": "1234"
+    { "tag": "card"
+    , "email": "my@email"
+    , "tel": "1234"
     }
 
-**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggest `sumType` is designed to be used when you have more than one variant.
+**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggests `sumType` is designed to be used when you have more than one variant.
 
 -}
 variant2 :
@@ -241,13 +241,13 @@ The subsequent arguments are tuples representing the name of the expected proper
 
 Then `Date 2020 1 1` variant will be encoded to a JSON object like:
 
-    {"tag": "date"
-    ,"year": 2020
-    ,"month": 1
-    ,"day": 1
+    { "tag": "date"
+    , "year": 2020
+    , "month": 1
+    , "day": 1
     }
 
-**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggest `sumType` is designed to be used when you have more than one variant.
+**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggests `sumType` is designed to be used when you have more than one variant.
 
 -}
 variant3 :
@@ -301,18 +301,17 @@ This is the preferred way of encoding variants that requires a lot of parameters
 
 Then `Date { year = 2020, month = 1, day = 1 }` variant will be encoded to a JSON object like:
 
-       {
-           "tag": "date",
-           "data": {
-                "year": 2020,
-                "month": 1,
-                "day": 1
+       { "tag": "date"
+       , "data":
+            { "year": 2020
+            , "month": 1
+            , "day": 1
             }
        }
 
 In this way is possible to use the full flexibility offered by `Codec.object`
 
-**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggest `sumType` is designed to be used when you have more than one variant.
+**NOTE**: This type has only one variant to make the example simpler, but if you have a case like that, it's better to use `Codec.object`. As the name suggests `sumType` is designed to be used when you have more than one variant.
 
 -}
 variantData :
