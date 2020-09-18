@@ -79,10 +79,10 @@ variant :
     -> JD.Decoder v
     -> SumTypeCodec (a -> b) v
     -> SumTypeCodec b v
-variant tag venc vdec (SumTypeCodec am) =
+variant tag enc dec (SumTypeCodec st) =
     SumTypeCodec
-        { match = am.match venc
-        , decoders = Dict.insert tag vdec am.decoders
+        { match = st.match enc
+        , decoders = Dict.insert tag dec st.decoders
         }
 
 
@@ -118,10 +118,10 @@ variant0 :
     -> v
     -> SumTypeCodec (List ( String, JE.Value ) -> b) v
     -> SumTypeCodec b v
-variant0 tag ctr =
+variant0 tag val =
     variant tag
         [ mkTag tag ]
-        (JD.succeed ctr)
+        (JD.succeed val)
 
 
 {-| Define a variant with 1 parameter for a sum type.
@@ -158,10 +158,10 @@ variant1 :
     -> ( String, Codec a )
     -> SumTypeCodec ((a -> List ( String, JE.Value )) -> b) v
     -> SumTypeCodec b v
-variant1 tag ctr ( field, fcodec ) =
+variant1 tag make ( field, codec ) =
     variant tag
-        (\a -> [ mkTag tag, ( field, Codec.encoder fcodec a ) ])
-        (JD.map ctr <| JD.field field <| Codec.decoder fcodec)
+        (\a -> [ mkTag tag, ( field, Codec.encoder codec a ) ])
+        (JD.map make <| JD.field field <| Codec.decoder codec)
 
 
 {-| Define a variant with 2 parameters for a sum type.
@@ -200,7 +200,7 @@ variant2 :
     -> ( String, Codec a2 )
     -> SumTypeCodec ((a1 -> a2 -> List ( String, JE.Value )) -> b) v
     -> SumTypeCodec b v
-variant2 tag ctr ( f1, fc1 ) ( f2, fc2 ) =
+variant2 tag make ( f1, fc1 ) ( f2, fc2 ) =
     variant tag
         (\a1 a2 ->
             [ mkTag tag
@@ -208,7 +208,7 @@ variant2 tag ctr ( f1, fc1 ) ( f2, fc2 ) =
             , ( f2, Codec.encoder fc2 a2 )
             ]
         )
-        (JD.map2 ctr
+        (JD.map2 make
             (JD.field f1 <| Codec.decoder fc1)
             (JD.field f2 <| Codec.decoder fc2)
         )
@@ -258,7 +258,7 @@ variant3 :
     -> ( String, Codec a3 )
     -> SumTypeCodec ((a1 -> a2 -> a3 -> List ( String, JE.Value )) -> b) v
     -> SumTypeCodec b v
-variant3 tag ctr ( f1, fc1 ) ( f2, fc2 ) ( f3, fc3 ) =
+variant3 tag make ( f1, fc1 ) ( f2, fc2 ) ( f3, fc3 ) =
     variant tag
         (\a1 a2 a3 ->
             [ mkTag tag
@@ -267,7 +267,7 @@ variant3 tag ctr ( f1, fc1 ) ( f2, fc2 ) ( f3, fc3 ) =
             , ( f3, Codec.encoder fc3 a3 )
             ]
         )
-        (JD.map3 ctr
+        (JD.map3 make
             (JD.field f1 <| Codec.decoder fc1)
             (JD.field f2 <| Codec.decoder fc2)
             (JD.field f3 <| Codec.decoder fc3)
@@ -320,18 +320,18 @@ variantData :
     -> Codec a
     -> SumTypeCodec ((a -> List ( String, JE.Value )) -> b) v
     -> SumTypeCodec b v
-variantData tag ctr fcodec =
-    variant1 tag ctr ( "data", fcodec )
+variantData tag make codec =
+    variant1 tag make ( "data", codec )
 
 
 buildSumType : SumTypeCodec (a -> List ( String, JE.Value )) a -> Codec a
-buildSumType (SumTypeCodec am) =
+buildSumType (SumTypeCodec st) =
     Codec.build
-        (\val -> JE.object <| am.match val)
+        (\val -> JE.object <| st.match val)
         (JD.field "tag" JD.string
             |> JD.andThen
                 (\tag ->
-                    case Dict.get tag am.decoders of
+                    case Dict.get tag st.decoders of
                         Nothing ->
                             JD.fail <| "tag " ++ tag ++ "did not match"
 
