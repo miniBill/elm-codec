@@ -1,5 +1,5 @@
 module Codec.SumType exposing
-    ( sumType, buildSumType
+    ( sumType, sumTypeOn, buildSumType
     , variant0, variant1, variant2, variant3, variantData
     , SumTypeCodec
     )
@@ -9,7 +9,7 @@ module Codec.SumType exposing
 
 # Make a codec
 
-@docs sumType, buildSumType
+@docs sumType, sumTypeOn, buildSumType
 
 
 # Variants
@@ -28,6 +28,21 @@ type SumTypeCodec match value
     = SumTypeCodec
         { match : match
         , decoders : Dict String (Decoder value)
+        , discriminator : String
+        }
+
+
+{-| Configure a different discriminator field.
+
+    sumTypeOn "tag" == sumType
+
+-}
+sumTypeOn : String -> match -> SumTypeCodec match value
+sumTypeOn disc match =
+    SumTypeCodec
+        { match = match
+        , decoders = Dict.empty
+        , discriminator = disc
         }
 
 
@@ -43,13 +58,13 @@ You need to pass a pattern matching function, built like this:
     paypmentCodec : Codec Payment
     paypmentCodec =
         sumType
-            (\cash creditCard paypal value ->
+            (\cash card paypal value ->
                 case value of
                     Cash ->
                         cash
 
                     CreditCard number ->
-                        creditCard number
+                        card number
 
                     Paypal email telephone ->
                         paypal email telephone
@@ -59,18 +74,19 @@ You need to pass a pattern matching function, built like this:
             |> variant2 "paypal" Paypal ( "email", Codec.string ) ( "tel", Codec.string )
             |> buildSumType
 
+This method will use a field named `tag` for the discriminator value. Have a look at [sumTypeOn](#sumTypeOn) if you need a different one.
+
+Have a look at `variant` set of functions to better understand how the JSON will look like in each case.
+
 -}
 sumType : match -> SumTypeCodec match value
-sumType match =
-    SumTypeCodec
-        { match = match
-        , decoders = Dict.empty
-        }
+sumType =
+    sumTypeOn "tag"
 
 
-mkTag : String -> ( String, JE.Value )
-mkTag s =
-    ( "tag", JE.string s )
+mkTag : SumTypeCodec a b -> String -> ( String, JE.Value )
+mkTag (SumTypeCodec st) val =
+    ( st.discriminator, JE.string val )
 
 
 variant :
@@ -83,6 +99,7 @@ variant tag enc dec (SumTypeCodec st) =
     SumTypeCodec
         { match = st.match enc
         , decoders = Dict.insert tag dec st.decoders
+        , discriminator = st.discriminator
         }
 
 
@@ -118,10 +135,11 @@ variant0 :
     -> v
     -> SumTypeCodec (List ( String, JE.Value ) -> b) v
     -> SumTypeCodec b v
-variant0 tag val =
+variant0 tag val st =
     variant tag
-        [ mkTag tag ]
+        [ mkTag st tag ]
         (JD.succeed val)
+        st
 
 
 {-| Define a variant with 1 parameter for a sum type.
@@ -158,10 +176,11 @@ variant1 :
     -> ( String, Codec a )
     -> SumTypeCodec ((a -> List ( String, JE.Value )) -> b) v
     -> SumTypeCodec b v
-variant1 tag make ( field, codec ) =
+variant1 tag make ( field, codec ) st =
     variant tag
-        (\a -> [ mkTag tag, ( field, Codec.encoder codec a ) ])
+        (\a -> [ mkTag st tag, ( field, Codec.encoder codec a ) ])
         (JD.map make <| JD.field field <| Codec.decoder codec)
+        st
 
 
 {-| Define a variant with 2 parameters for a sum type.
@@ -200,10 +219,10 @@ variant2 :
     -> ( String, Codec a2 )
     -> SumTypeCodec ((a1 -> a2 -> List ( String, JE.Value )) -> b) v
     -> SumTypeCodec b v
-variant2 tag make ( f1, fc1 ) ( f2, fc2 ) =
+variant2 tag make ( f1, fc1 ) ( f2, fc2 ) st =
     variant tag
         (\a1 a2 ->
-            [ mkTag tag
+            [ mkTag st tag
             , ( f1, Codec.encoder fc1 a1 )
             , ( f2, Codec.encoder fc2 a2 )
             ]
@@ -212,6 +231,7 @@ variant2 tag make ( f1, fc1 ) ( f2, fc2 ) =
             (JD.field f1 <| Codec.decoder fc1)
             (JD.field f2 <| Codec.decoder fc2)
         )
+        st
 
 
 {-| Define a variant with 3 parameters for a sum type.
@@ -258,10 +278,10 @@ variant3 :
     -> ( String, Codec a3 )
     -> SumTypeCodec ((a1 -> a2 -> a3 -> List ( String, JE.Value )) -> b) v
     -> SumTypeCodec b v
-variant3 tag make ( f1, fc1 ) ( f2, fc2 ) ( f3, fc3 ) =
+variant3 tag make ( f1, fc1 ) ( f2, fc2 ) ( f3, fc3 ) st =
     variant tag
         (\a1 a2 a3 ->
-            [ mkTag tag
+            [ mkTag st tag
             , ( f1, Codec.encoder fc1 a1 )
             , ( f2, Codec.encoder fc2 a2 )
             , ( f3, Codec.encoder fc3 a3 )
@@ -272,6 +292,7 @@ variant3 tag make ( f1, fc1 ) ( f2, fc2 ) ( f3, fc3 ) =
             (JD.field f2 <| Codec.decoder fc2)
             (JD.field f3 <| Codec.decoder fc3)
         )
+        st
 
 
 {-| Define a variant with an object as parameter.
@@ -328,7 +349,7 @@ buildSumType : SumTypeCodec (a -> List ( String, JE.Value )) a -> Codec a
 buildSumType (SumTypeCodec st) =
     Codec.build
         (\val -> JE.object <| st.match val)
-        (JD.field "tag" JD.string
+        (JD.field st.discriminator JD.string
             |> JD.andThen
                 (\tag ->
                     case Dict.get tag st.decoders of

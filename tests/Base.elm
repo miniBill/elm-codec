@@ -1,7 +1,7 @@
 module Base exposing (roundtrips, suite)
 
 import Codec exposing (Codec)
-import Codec.SumType as ST exposing (SumTypeCodec)
+import Codec.SumType as ST
 import Dict
 import Expect
 import Fuzz exposing (Fuzzer)
