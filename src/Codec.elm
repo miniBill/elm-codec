@@ -522,7 +522,7 @@ variant name matchPiece decoderPiece (CustomCodec am) =
         }
 
 
-{-| Define a variant with 0 parameters for a custom type. The first argument is
+{-| Define a variant with 0 parameters for a custom type.
 -}
 variant0 :
     String
