@@ -5,7 +5,7 @@ module Codec exposing
     , string, bool, int, float, char
     , maybe, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, maybeField, nullableField, buildObject
-    , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
+    , CustomCodec, custom, customWithTag, OpaqueValue, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, variantObject, buildCustom
     , oneOf
     , map
     , succeed, recursive, fail, andThen, lazy, value, build, constant
@@ -46,7 +46,7 @@ module Codec exposing
 
 # Custom Types
 
-@docs CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
+@docs CustomCodec, custom, customWithTag, OpaqueValue, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, variantObject, buildCustom
 
 
 # Inconsistent structure
@@ -460,7 +460,8 @@ buildObject (ObjectCodec om) =
 -}
 type CustomCodec match v
     = CustomCodec
-        { match : match
+        { tagName : String
+        , match : match
         , decoder : Dict String (Decoder v)
         }
 
@@ -495,29 +496,45 @@ You need to pass a pattern matching function, built like this:
 
 -}
 custom : match -> CustomCodec match value
-custom match =
+custom =
+    customWithTag "tag"
+
+
+{-| Starts building a `Codec` for a custom type, using a custom field for the "tag" (variant name) property.
+-}
+customWithTag : String -> match -> CustomCodec match value
+customWithTag tagName match =
     CustomCodec
-        { match = match
+        { tagName = tagName
+        , match = match
         , decoder = Dict.empty
         }
 
 
+{-| This contains a tag and a list of JSON `Value`s, but it is contained inside an opaque type to prevent errors.
+-}
+type OpaqueValue
+    = OpaqueValue (List ( String, Value ))
+
+
+simplyTagged : String -> String -> List Value -> OpaqueValue
+simplyTagged tagName name args =
+    OpaqueValue <|
+        [ ( tagName, JE.string name )
+        , ( "args", JE.list identity args )
+        ]
+
+
 variant :
     String
-    -> ((List Value -> Value) -> a)
+    -> (String -> matchPiece)
     -> Decoder v
-    -> CustomCodec (a -> b) v
-    -> CustomCodec b v
+    -> CustomCodec (matchPiece -> a) v
+    -> CustomCodec a v
 variant name matchPiece decoderPiece (CustomCodec am) =
-    let
-        enc v =
-            JE.object
-                [ ( "tag", JE.string name )
-                , ( "args", JE.list identity v )
-                ]
-    in
     CustomCodec
-        { match = am.match <| matchPiece enc
+        { tagName = am.tagName
+        , match = am.match (matchPiece am.tagName)
         , decoder = Dict.insert name decoderPiece am.decoder
         }
 
@@ -527,11 +544,11 @@ variant name matchPiece decoderPiece (CustomCodec am) =
 variant0 :
     String
     -> v
-    -> CustomCodec (Value -> a) v
+    -> CustomCodec (OpaqueValue -> a) v
     -> CustomCodec a v
 variant0 name ctor =
     variant name
-        (\c -> c [])
+        (\tagName -> simplyTagged tagName name [])
         (JD.succeed ctor)
 
 
@@ -541,17 +558,19 @@ variant1 :
     String
     -> (a -> v)
     -> Codec a
-    -> CustomCodec ((a -> Value) -> b) v
+    -> CustomCodec ((a -> OpaqueValue) -> b) v
     -> CustomCodec b v
 variant1 name ctor m1 =
     variant name
-        (\c v ->
-            c
+        (\tagName v ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v
                 ]
         )
-        (JD.map ctor
-            (JD.index 0 <| decoder m1)
+        (JD.field "args" <|
+            JD.map ctor
+                (JD.index 0 <| decoder m1)
         )
 
 
@@ -562,19 +581,21 @@ variant2 :
     -> (a -> b -> v)
     -> Codec a
     -> Codec b
-    -> CustomCodec ((a -> b -> Value) -> c) v
+    -> CustomCodec ((a -> b -> OpaqueValue) -> c) v
     -> CustomCodec c v
 variant2 name ctor m1 m2 =
     variant name
-        (\c v1 v2 ->
-            c
+        (\tagName v1 v2 ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v1
                 , encoder m2 v2
                 ]
         )
-        (JD.map2 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
+        (JD.field "args" <|
+            JD.map2 ctor
+                (JD.index 0 <| decoder m1)
+                (JD.index 1 <| decoder m2)
         )
 
 
@@ -586,21 +607,23 @@ variant3 :
     -> Codec a
     -> Codec b
     -> Codec c
-    -> CustomCodec ((a -> b -> c -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> OpaqueValue) -> partial) v
     -> CustomCodec partial v
 variant3 name ctor m1 m2 m3 =
     variant name
-        (\c v1 v2 v3 ->
-            c
+        (\tagName v1 v2 v3 ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v1
                 , encoder m2 v2
                 , encoder m3 v3
                 ]
         )
-        (JD.map3 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
+        (JD.field "args" <|
+            JD.map3 ctor
+                (JD.index 0 <| decoder m1)
+                (JD.index 1 <| decoder m2)
+                (JD.index 2 <| decoder m3)
         )
 
 
@@ -613,23 +636,25 @@ variant4 :
     -> Codec b
     -> Codec c
     -> Codec d
-    -> CustomCodec ((a -> b -> c -> d -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> OpaqueValue) -> partial) v
     -> CustomCodec partial v
 variant4 name ctor m1 m2 m3 m4 =
     variant name
-        (\c v1 v2 v3 v4 ->
-            c
+        (\tagName v1 v2 v3 v4 ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v1
                 , encoder m2 v2
                 , encoder m3 v3
                 , encoder m4 v4
                 ]
         )
-        (JD.map4 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
+        (JD.field "args" <|
+            JD.map4 ctor
+                (JD.index 0 <| decoder m1)
+                (JD.index 1 <| decoder m2)
+                (JD.index 2 <| decoder m3)
+                (JD.index 3 <| decoder m4)
         )
 
 
@@ -643,12 +668,13 @@ variant5 :
     -> Codec c
     -> Codec d
     -> Codec e
-    -> CustomCodec ((a -> b -> c -> d -> e -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> OpaqueValue) -> partial) v
     -> CustomCodec partial v
 variant5 name ctor m1 m2 m3 m4 m5 =
     variant name
-        (\c v1 v2 v3 v4 v5 ->
-            c
+        (\tagName v1 v2 v3 v4 v5 ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v1
                 , encoder m2 v2
                 , encoder m3 v3
@@ -656,12 +682,13 @@ variant5 name ctor m1 m2 m3 m4 m5 =
                 , encoder m5 v5
                 ]
         )
-        (JD.map5 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
+        (JD.field "args" <|
+            JD.map5 ctor
+                (JD.index 0 <| decoder m1)
+                (JD.index 1 <| decoder m2)
+                (JD.index 2 <| decoder m3)
+                (JD.index 3 <| decoder m4)
+                (JD.index 4 <| decoder m5)
         )
 
 
@@ -676,12 +703,13 @@ variant6 :
     -> Codec d
     -> Codec e
     -> Codec f
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> f -> OpaqueValue) -> partial) v
     -> CustomCodec partial v
 variant6 name ctor m1 m2 m3 m4 m5 m6 =
     variant name
-        (\c v1 v2 v3 v4 v5 v6 ->
-            c
+        (\tagName v1 v2 v3 v4 v5 v6 ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v1
                 , encoder m2 v2
                 , encoder m3 v3
@@ -690,13 +718,14 @@ variant6 name ctor m1 m2 m3 m4 m5 m6 =
                 , encoder m6 v6
                 ]
         )
-        (JD.map6 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
-            (JD.index 5 <| decoder m6)
+        (JD.field "args" <|
+            JD.map6 ctor
+                (JD.index 0 <| decoder m1)
+                (JD.index 1 <| decoder m2)
+                (JD.index 2 <| decoder m3)
+                (JD.index 3 <| decoder m4)
+                (JD.index 4 <| decoder m5)
+                (JD.index 5 <| decoder m6)
         )
 
 
@@ -712,12 +741,13 @@ variant7 :
     -> Codec e
     -> Codec f
     -> Codec g
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> OpaqueValue) -> partial) v
     -> CustomCodec partial v
 variant7 name ctor m1 m2 m3 m4 m5 m6 m7 =
     variant name
-        (\c v1 v2 v3 v4 v5 v6 v7 ->
-            c
+        (\tagName v1 v2 v3 v4 v5 v6 v7 ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v1
                 , encoder m2 v2
                 , encoder m3 v3
@@ -727,14 +757,15 @@ variant7 name ctor m1 m2 m3 m4 m5 m6 m7 =
                 , encoder m7 v7
                 ]
         )
-        (JD.map7 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
-            (JD.index 5 <| decoder m6)
-            (JD.index 6 <| decoder m7)
+        (JD.field "args" <|
+            JD.map7 ctor
+                (JD.index 0 <| decoder m1)
+                (JD.index 1 <| decoder m2)
+                (JD.index 2 <| decoder m3)
+                (JD.index 3 <| decoder m4)
+                (JD.index 4 <| decoder m5)
+                (JD.index 5 <| decoder m6)
+                (JD.index 6 <| decoder m7)
         )
 
 
@@ -751,12 +782,13 @@ variant8 :
     -> Codec f
     -> Codec g
     -> Codec h
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> h -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> h -> OpaqueValue) -> partial) v
     -> CustomCodec partial v
 variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
     variant name
-        (\c v1 v2 v3 v4 v5 v6 v7 v8 ->
-            c
+        (\tagName v1 v2 v3 v4 v5 v6 v7 v8 ->
+            simplyTagged tagName
+                name
                 [ encoder m1 v1
                 , encoder m2 v2
                 , encoder m3 v3
@@ -767,26 +799,49 @@ variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
                 , encoder m8 v8
                 ]
         )
-        (JD.map8 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
-            (JD.index 5 <| decoder m6)
-            (JD.index 6 <| decoder m7)
-            (JD.index 7 <| decoder m8)
+        (JD.field "args" <|
+            JD.map8 ctor
+                (JD.index 0 <| decoder m1)
+                (JD.index 1 <| decoder m2)
+                (JD.index 2 <| decoder m3)
+                (JD.index 3 <| decoder m4)
+                (JD.index 4 <| decoder m5)
+                (JD.index 5 <| decoder m6)
+                (JD.index 6 <| decoder m7)
+                (JD.index 7 <| decoder m8)
         )
+
+
+variantObject :
+    String
+    -> (b -> value)
+    -> ObjectCodec a b
+    -> CustomCodec ((a -> OpaqueValue) -> c) value
+    -> CustomCodec c value
+variantObject name ctor (ObjectCodec oc) =
+    variant name
+        (\tagName v ->
+            OpaqueValue <|
+                ( tagName, JE.string name )
+                    :: List.reverse (oc.encoder v)
+        )
+        (JD.map ctor oc.decoder)
 
 
 {-| Build a `Codec` for a fully specified custom type.
 -}
-buildCustom : CustomCodec (a -> Value) a -> Codec a
+buildCustom : CustomCodec (a -> OpaqueValue) a -> Codec a
 buildCustom (CustomCodec am) =
     Codec
-        { encoder = \v -> am.match v
+        { encoder =
+            \v ->
+                let
+                    (OpaqueValue args) =
+                        am.match v
+                in
+                JE.object args
         , decoder =
-            JD.field "tag" JD.string
+            JD.field am.tagName JD.string
                 |> JD.andThen
                     (\tag ->
                         case Dict.get tag am.decoder of
@@ -794,7 +849,7 @@ buildCustom (CustomCodec am) =
                                 JD.fail <| "tag " ++ tag ++ " did not match"
 
                             Just dec ->
-                                JD.field "args" dec
+                                dec
                     )
         }
 
