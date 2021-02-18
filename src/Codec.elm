@@ -791,7 +791,7 @@ buildCustom (CustomCodec am) =
                     (\tag ->
                         case Dict.get tag am.decoder of
                             Nothing ->
-                                JD.fail <| "tag " ++ tag ++ "did not match"
+                                JD.fail <| "tag " ++ tag ++ " did not match"
 
                             Just dec ->
                                 JD.field "args" dec
