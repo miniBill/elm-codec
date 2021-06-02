@@ -239,7 +239,7 @@ composite enc dec (Codec codec) =
 maybe : Codec a -> Codec (Maybe a)
 maybe codec =
     Codec
-        { decoder = JD.maybe <| decoder codec
+        { decoder = JD.nullable <| decoder codec
         , encoder =
             \v ->
                 case v of
