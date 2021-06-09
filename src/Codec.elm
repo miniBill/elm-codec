@@ -9,6 +9,7 @@ module Codec exposing
     , oneOf
     , map
     , succeed, recursive, fail, andThen, lazy, value, build, constant
+    , nullable
     )
 
 {-| A `Codec a` contain a JSON `Decoder a` and the corresponding `a -> Value` encoder.
@@ -234,10 +235,27 @@ composite enc dec (Codec codec) =
         }
 
 
-{-| Represents an optional value.
+{-| Represents an optional value. This is used for values that may not exist.
 -}
 maybe : Codec a -> Codec (Maybe a)
 maybe codec =
+    Codec
+        { decoder = JD.maybe <| decoder codec
+        , encoder =
+            \v ->
+                case v of
+                    Nothing ->
+                        JE.null
+
+                    Just x ->
+                        encoder codec x
+        }
+
+
+{-| Represents an optional value. This is used for values that may be null.
+-}
+nullable : Codec a -> Codec (Maybe a)
+nullable codec =
     Codec
         { decoder = JD.nullable <| decoder codec
         , encoder =
