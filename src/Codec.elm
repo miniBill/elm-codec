@@ -235,7 +235,11 @@ composite enc dec (Codec codec) =
         }
 
 
-{-| Represents an optional value. This is used for values that may not exist.
+{-| Represents an optional value.
+
+If the value isn't present, is `null`, or has the wrong type, the decoder will return `Nothing`.
+If the value is `Nothing` then the resulting object will contain the field with a `null` value.
+
 -}
 maybe : Codec a -> Codec (Maybe a)
 maybe codec =
@@ -252,7 +256,12 @@ maybe codec =
         }
 
 
-{-| Represents an optional value. This is used for values that may be null.
+{-| Represents an optional value.
+
+If the value is `null` the decoder will return `Nothing`.
+If the value isn't present, or has the wrong type, the encoder will error out.
+If the value is `Nothing` then the resulting object will contain the field with a `null` value.
+
 -}
 nullable : Codec a -> Codec (Maybe a)
 nullable codec =
@@ -449,7 +458,7 @@ maybeField name getter codec (ObjectCodec ocodec) =
 
 {-| Specify the name getter and `Codec` for a required field, whose value can be `null`.
 
-If the field is not present in the input then _the decoding fails_.
+If the field is not present in the input, is `null`, or has the wrong type, the decoder will return `Nothing`.
 If the field's value is `Nothing` then the resulting object will contain the field with a `null` value.
 
 This is a shorthand for a field having a codec built using `Codec.maybe`.
