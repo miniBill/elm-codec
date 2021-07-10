@@ -45,26 +45,25 @@ decodeString s =
 ```elm
 type Semaphore
     = Red Int String
-    | Yellow Float
-    | Green
-
+    | Yellow
+    | Green Float
 
 semaphoreCodec : Codec Semaphore
 semaphoreCodec =
     Codec.custom
-        (\fred fyellow fgreen value ->
+        (\red yellow green value ->
             case value of
                 Red i s ->
-                    fred i s
+                    red i s 
 
-                Yellow f ->
-                    fyellow f
+                Yellow ->
+                    yellow
 
-                Green ->
-                    fgreen
+                Green f ->
+                    green f
         )
         |> Codec.variant2 "Red" Red Codec.int Codec.string
-        |> Codec.variant1 "Yellow" Yellow Codec.float
-        |> Codec.variant0 "Green" Green
+        |> Codec.variant0 "Yellow" Yellow
+        |> Codec.variant1 "Green" Green Codec.float
         |> Codec.buildCustom
 ```
