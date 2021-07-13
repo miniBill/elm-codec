@@ -471,8 +471,8 @@ You need to pass a pattern matching function, built like this:
 
     type Semaphore
         = Red Int String
-        | Yellow Float
-        | Green
+        | Yellow
+        | Green Float
 
     semaphoreCodec : Codec Semaphore
     semaphoreCodec =
@@ -482,15 +482,15 @@ You need to pass a pattern matching function, built like this:
                     Red i s ->
                         red i s
 
-                    Yellow f ->
-                        yellow f
+                    Yellow ->
+                        yellow
 
-                    Green ->
-                        green
+                    Green f ->
+                        green f
             )
             |> Codec.variant2 "Red" Red Codec.int Codec.string
-            |> Codec.variant1 "Yellow" Yellow Codec.float
-            |> Codec.variant0 "Green" Green
+            |> Codec.variant0 "Yellow" Yellow
+            |> Codec.variant1 "Green" Green Codec.float
             |> Codec.buildCustom
 
 -}
