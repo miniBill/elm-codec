@@ -238,17 +238,18 @@ composite enc dec (Codec codec) =
 -}
 maybe : Codec a -> Codec (Maybe a)
 maybe codec =
-    Codec
-        { decoder = JD.maybe <| decoder codec
-        , encoder =
-            \v ->
-                case v of
-                    Nothing ->
-                        JE.null
+    custom
+        (\fjust fnothing v ->
+            case v of
+                Just a ->
+                    fjust a
 
-                    Just x ->
-                        encoder codec x
-        }
+                Nothing ->
+                    fnothing
+        )
+        |> variant1 "Just" Just codec
+        |> variant0 "Nothing" Nothing
+        |> buildCustom
 
 
 {-| `Codec` between a JSON array and an Elm `List`.
