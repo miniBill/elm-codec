@@ -144,7 +144,7 @@ decodeValue a =
 
 
 
--- BASE
+-- PRIMITIVES
 
 
 {-| `Codec` between a JSON boolean and an Elm `Bool`
