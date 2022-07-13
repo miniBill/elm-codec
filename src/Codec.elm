@@ -1,6 +1,6 @@
 module Codec exposing
     ( Codec
-    , Decoder, decoder, decodeString, decodeValue
+    , decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
     , maybe, list, array, dict, set, tuple, triple, result
@@ -21,7 +21,7 @@ module Codec exposing
 
 # Decode
 
-@docs Decoder, decoder, decodeString, decodeValue
+@docs decoder, decodeString, decodeValue
 
 
 # Encode
@@ -81,7 +81,7 @@ import Set
 type Codec a
     = Codec
         { encoder : a -> Json.Decode.Value
-        , decoder : Decoder a
+        , decoder : Json.Decode.Decoder a
         }
 
 
@@ -89,15 +89,9 @@ type Codec a
 -- DECODE
 
 
-{-| A value that knows how to decode JSON values.
--}
-type alias Decoder a =
-    Json.Decode.Decoder a
-
-
 {-| Extracts the `Decoder` contained inside the `Codec`.
 -}
-decoder : Codec a -> Decoder a
+decoder : Codec a -> Json.Decode.Decoder a
 decoder (Codec m) =
     m.decoder
 
@@ -152,7 +146,7 @@ encodeToValue codec =
 {-| Build your own custom `Codec`.
 Useful if you have pre-existing `Decoder`s you need to use.
 -}
-build : (a -> Json.Decode.Value) -> Decoder a -> Codec a
+build : (a -> Json.Decode.Value) -> Json.Decode.Decoder a -> Codec a
 build encoder_ decoder_ =
     Codec
         { encoder = encoder_
@@ -211,7 +205,7 @@ char =
 -- DATA STRUCTURES
 
 
-composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
+composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Json.Decode.Decoder b -> Json.Decode.Decoder a) -> Codec b -> Codec a
 composite enc dec (Codec codec) =
     Codec
         { encoder = enc codec.encoder
@@ -335,7 +329,7 @@ result errorCodec valueCodec =
 type ObjectCodec a b
     = ObjectCodec
         { encoder : a -> List ( String, Json.Decode.Value )
-        , decoder : Decoder b
+        , decoder : Json.Decode.Decoder b
         }
 
 
@@ -446,7 +440,7 @@ buildObject (ObjectCodec om) =
 type CustomCodec match v
     = CustomCodec
         { match : match
-        , decoder : Dict.Dict String (Decoder v)
+        , decoder : Dict.Dict String (Json.Decode.Decoder v)
         }
 
 
@@ -490,7 +484,7 @@ custom match =
 variant :
     String
     -> ((List Json.Decode.Value -> Json.Decode.Value) -> a)
-    -> Decoder v
+    -> Json.Decode.Decoder v
     -> CustomCodec (a -> b) v
     -> CustomCodec b v
 variant name matchPiece decoderPiece (CustomCodec am) =
