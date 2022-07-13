@@ -810,19 +810,19 @@ maybe a =
 
 {-| `Codec` for `Result` values.
 -}
-result : Codec error -> Codec value -> Codec (Result error value)
-result errorCodec valueCodec =
+result : Codec error -> Codec a -> Codec (Result error a)
+result error a =
     custom
-        (\ferr fok v ->
-            case v of
-                Err err ->
-                    ferr err
+        (\fn1 fn2 x ->
+            case x of
+                Ok x1 ->
+                    fn1 x1
 
-                Ok ok ->
-                    fok ok
+                Err x1 ->
+                    fn2 x1
         )
-        |> variant1 "Err" Err errorCodec
-        |> variant1 "Ok" Ok valueCodec
+        |> variant1 "Ok" Ok a
+        |> variant1 "Err" Err error
         |> buildCustom
 
 
