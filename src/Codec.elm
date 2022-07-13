@@ -1,5 +1,5 @@
 module Codec exposing
-    ( Codec
+    ( Codec, build
     , decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
     , bool, int, float, char, string
@@ -8,7 +8,7 @@ module Codec exposing
     , maybe, list, array, dict, set, tuple, triple, result
     , oneOf
     , map
-    , succeed, recursive, fail, andThen, lazy, value, build, constant
+    , succeed, recursive, fail, andThen, lazy, value, constant
     )
 
 {-| Codec contains a JSON encoder and decoder.
@@ -16,7 +16,7 @@ module Codec exposing
 
 # Definition
 
-@docs Codec
+@docs Codec, build
 
 
 # Decode
@@ -61,7 +61,7 @@ module Codec exposing
 
 # Fancy Codecs
 
-@docs succeed, recursive, fail, andThen, lazy, value, build, constant
+@docs succeed, recursive, fail, andThen, lazy, value, constant
 
 -}
 
@@ -82,6 +82,17 @@ type Codec a
     = Codec
         { encoder : a -> Json.Decode.Value
         , decoder : Json.Decode.Decoder a
+        }
+
+
+{-| Build your own custom `Codec`.
+Useful if you have pre-existing `Decoder`s you need to use.
+-}
+build : (a -> Json.Decode.Value) -> Json.Decode.Decoder a -> Codec a
+build a b =
+    Codec
+        { encoder = a
+        , decoder = b
         }
 
 
@@ -141,17 +152,6 @@ encodeToValue a =
 
 
 -- BASE
-
-
-{-| Build your own custom `Codec`.
-Useful if you have pre-existing `Decoder`s you need to use.
--}
-build : (a -> Json.Decode.Value) -> Json.Decode.Decoder a -> Codec a
-build a b =
-    Codec
-        { encoder = a
-        , decoder = b
-        }
 
 
 {-| `Codec` between a JSON boolean and an Elm `Bool`
