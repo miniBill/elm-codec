@@ -746,14 +746,14 @@ array a =
 -}
 dict : Codec comparable -> Codec v -> Codec (Dict.Dict comparable v)
 dict k v =
-    list (tuple k v) |> map Dict.fromList Dict.toList
+    list (tuple k v) |> map Dict.toList Dict.fromList
 
 
 {-| `Codec` between a JSON array and an Elm `Set`.
 -}
 set : Codec comparable -> Codec (Set.Set comparable)
 set a =
-    list a |> map Set.fromList Set.toList
+    list a |> map Set.toList Set.fromList
 
 
 
@@ -820,8 +820,8 @@ result error a =
 
 {-| Transform a `Codec`.
 -}
-map : (a -> b) -> (b -> a) -> Codec a -> Codec b
-map aToB bToA codec =
+map : (b -> a) -> (a -> b) -> Codec a -> Codec b
+map bToA aToB codec =
     Codec
         { encoder = \x -> encoder codec (bToA x)
         , decoder = Json.Decode.map aToB (decoder codec)
