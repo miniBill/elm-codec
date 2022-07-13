@@ -1,5 +1,5 @@
 module Codec exposing
-    ( Codec, Error
+    ( Codec
     , Decoder, decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
@@ -16,7 +16,7 @@ module Codec exposing
 
 # Definition
 
-@docs Codec, Error
+@docs Codec
 
 
 # Decode
@@ -85,15 +85,6 @@ type Codec a
         }
 
 
-{-| A structured error describing exactly how the decoder failed. You can use
-this to create more elaborate visualizations of a decoder problem. For example,
-you could show the entire JSON object and show the part causing the failure in
-red.
--}
-type alias Error =
-    Json.Decode.Error
-
-
 
 -- DECODE
 
@@ -115,7 +106,7 @@ decoder (Codec m) =
 This will fail if the string is not well-formed JSON or if the `Codec`
 fails for some reason.
 -}
-decodeString : Codec a -> String -> Result Error a
+decodeString : Codec a -> String -> Result Json.Decode.Error a
 decodeString codec =
     Json.Decode.decodeString (decoder codec)
 
@@ -123,7 +114,7 @@ decodeString codec =
 {-| Run a `Codec` to decode some JSON `Value`. You can send these JSON values
 through ports, so that is probably the main time you would use this function.
 -}
-decodeValue : Codec a -> Json.Decode.Value -> Result Error a
+decodeValue : Codec a -> Json.Decode.Value -> Result Json.Decode.Error a
 decodeValue codec =
     Json.Decode.decodeValue (decoder codec)
 
