@@ -823,8 +823,8 @@ result error a =
 map : (a -> b) -> (b -> a) -> Codec a -> Codec b
 map aToB bToA codec =
     Codec
-        { encoder = \x -> bToA x |> encoder codec
-        , decoder = Json.Decode.map aToB <| decoder codec
+        { encoder = \x -> encoder codec (bToA x)
+        , decoder = Json.Decode.map aToB (decoder codec)
         }
 
 
