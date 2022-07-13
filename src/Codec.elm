@@ -3,7 +3,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
     , bool, int, float, char, string
-    , ObjectCodec, object, field, maybeField, nullableField, buildObject
+    , Record, object, field, maybeField, nullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , maybe, list, array, dict, set, tuple, triple, result
     , oneOf
@@ -33,7 +33,7 @@ module Codec exposing
 
 # Records
 
-@docs ObjectCodec, object, field, maybeField, nullableField, buildObject
+@docs Record, object, field, maybeField, nullableField, buildObject
 
 
 # Custom Types
@@ -200,8 +200,8 @@ string =
 
 {-| A partially built `Codec` for an object.
 -}
-type ObjectCodec a b
-    = ObjectCodec
+type Record a b
+    = Record
         { encoder : a -> List ( String, Json.Decode.Value )
         , decoder : Json.Decode.Decoder b
         }
@@ -234,9 +234,9 @@ Example without constructor:
             |> Codec.buildObject
 
 -}
-object : b -> ObjectCodec a b
+object : b -> Record a b
 object ctor =
-    ObjectCodec
+    Record
         { encoder = \_ -> []
         , decoder = Json.Decode.succeed ctor
         }
@@ -247,9 +247,9 @@ object ctor =
 The name is only used as the field name in the resulting JSON, and has no impact on the Elm side.
 
 -}
-field : String -> (a -> f) -> Codec f -> ObjectCodec a (f -> b) -> ObjectCodec a b
-field name getter codec (ObjectCodec ocodec) =
-    ObjectCodec
+field : String -> (a -> f) -> Codec f -> Record a (f -> b) -> Record a b
+field name getter codec (Record ocodec) =
+    Record
         { encoder = \v -> ( name, encoder codec <| getter v ) :: ocodec.encoder v
         , decoder = Json.Decode.map2 (\f x -> f x) ocodec.decoder (Json.Decode.field name (decoder codec))
         }
@@ -263,9 +263,9 @@ If the field is not present in the input then it gets decoded to `Nothing`.
 If the optional field's value is `Nothing` then the resulting object will not contain that field.
 
 -}
-maybeField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
-maybeField name getter codec (ObjectCodec ocodec) =
-    ObjectCodec
+maybeField : String -> (a -> Maybe f) -> Codec f -> Record a (Maybe f -> b) -> Record a b
+maybeField name getter codec (Record ocodec) =
+    Record
         { encoder =
             \v ->
                 case getter v of
@@ -290,15 +290,15 @@ If the field's value is `Nothing` then the resulting object will contain the fie
 This is a shorthand for a field having a codec built using `Codec.maybe`.
 
 -}
-nullableField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
+nullableField : String -> (a -> Maybe f) -> Codec f -> Record a (Maybe f -> b) -> Record a b
 nullableField name getter codec ocodec =
     field name getter (maybe codec) ocodec
 
 
-{-| Create a `Codec` from a fully specified `ObjectCodec`.
+{-| Create a `Codec` from a fully specified `Record`.
 -}
-buildObject : ObjectCodec a a -> Codec a
-buildObject (ObjectCodec om) =
+buildObject : Record a a -> Codec a
+buildObject (Record om) =
     Codec
         { encoder = \v -> Json.Encode.object <| List.reverse <| om.encoder v
         , decoder = om.decoder
