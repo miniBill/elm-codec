@@ -50,7 +50,7 @@ module Codec exposing
 @docs bool, maybe, result
 
 
-# Helper functions
+# Helper Functions
 
 @docs map, andThen, oneOf, lazy, succeed, fail, value
 
