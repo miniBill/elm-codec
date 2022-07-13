@@ -95,7 +95,13 @@ recordsTest =
 customTypesTest : Test.Test
 customTypesTest =
     Test.describe "Custom types."
-        [ Test.describe "with 1 variant, 0 args"
+        [ Test.test "encoder test"
+            (\_ ->
+                Expect.equal
+                    "[\"SomeVariant\",1]"
+                    (Codec.encodeToString 0 (someTypeCodec Codec.int) (SomeVariant 1))
+            )
+        , Test.describe "with 1 variant, 0 args"
             [ roundTripTest
                 (Fuzz.constant ())
                 (Codec.custom
@@ -111,18 +117,10 @@ customTypesTest =
         , Test.describe "with 1 variant, 1 arg"
             [ roundTripTest
                 (Fuzz.map
-                    SomeType
+                    SomeVariant
                     Fuzz.int
                 )
-                (Codec.custom
-                    (\fn x ->
-                        case x of
-                            SomeType a ->
-                                fn a
-                    )
-                    |> Codec.variant1 "SomeType" SomeType Codec.int
-                    |> Codec.buildCustom
-                )
+                (someTypeCodec Codec.int)
             ]
         ]
 
@@ -191,7 +189,19 @@ helperTest =
 
 
 type SomeType a
-    = SomeType a
+    = SomeVariant a
+
+
+someTypeCodec : Codec.Codec a -> Codec.Codec (SomeType a)
+someTypeCodec a =
+    Codec.custom
+        (\fn x ->
+            case x of
+                SomeVariant x1 ->
+                    fn x1
+        )
+        |> Codec.variant1 "SomeVariant" SomeVariant a
+        |> Codec.buildCustom
 
 
 
