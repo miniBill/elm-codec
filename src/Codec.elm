@@ -263,22 +263,22 @@ If the field is not present in the input then it gets decoded to `Nothing`.
 If the optional field's value is `Nothing` then the resulting record will not contain that field.
 
 -}
-maybeField : String -> (a -> Maybe f) -> Codec f -> Record a (Maybe f -> b) -> Record a b
-maybeField name getter codec (Record ocodec) =
+maybeField : String -> (a -> Maybe c) -> Codec c -> Record a (Maybe c -> b) -> Record a b
+maybeField name getter codec (Record a) =
     Record
         { encoder =
-            \v ->
-                case getter v of
-                    Just present ->
-                        ( name, encoder codec present ) :: ocodec.encoder v
+            \x ->
+                case getter x of
+                    Just x2 ->
+                        ( name, encoder codec x2 ) :: a.encoder x
 
                     Nothing ->
-                        ocodec.encoder v
+                        a.encoder x
         , decoder =
             decoder codec
                 |> Json.Decode.field name
                 |> Json.Decode.maybe
-                |> Json.Decode.map2 (\f x -> f x) ocodec.decoder
+                |> Json.Decode.map2 (\f x -> f x) a.decoder
         }
 
 
