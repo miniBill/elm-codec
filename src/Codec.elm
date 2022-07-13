@@ -235,10 +235,10 @@ Example without constructor:
 
 -}
 record : b -> Record a b
-record ctor =
+record a =
     Record
         { encoder = \_ -> []
-        , decoder = Json.Decode.succeed ctor
+        , decoder = Json.Decode.succeed a
         }
 
 
