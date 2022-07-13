@@ -700,14 +700,6 @@ buildCustom (Custom a) =
 -- OPAQUE CUSTOM TYPES
 
 
-composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Json.Decode.Decoder b -> Json.Decode.Decoder a) -> Codec b -> Codec a
-composite enc dec (Codec codec) =
-    Codec
-        { encoder = enc codec.encoder
-        , decoder = dec codec.decoder
-        }
-
-
 {-| `Codec` between a JSON number and an Elm `Int`
 -}
 int : Codec Int
@@ -751,8 +743,8 @@ string =
 {-| `Codec` between a JSON array and an Elm `List`.
 -}
 list : Codec a -> Codec (List a)
-list =
-    composite Json.Encode.list Json.Decode.list
+list a =
+    build (Json.Encode.list (encoder a)) (Json.Decode.list (decoder a))
 
 
 {-| `Codec` between a JSON array and an Elm `Array`.
