@@ -772,11 +772,22 @@ set a =
 -- COMMON CUSTOM TYPES
 
 
-{-| `Codec` between a JSON boolean and an Elm `Bool`
+{-| `Codec` for `Bool` values.
 -}
 bool : Codec Bool
 bool =
-    build Json.Encode.bool Json.Decode.bool
+    custom
+        (\fn1 fn2 x ->
+            case x of
+                True ->
+                    fn1
+
+                False ->
+                    fn2
+        )
+        |> variant0 "True" True
+        |> variant0 "False" False
+        |> buildCustom
 
 
 {-| Represents an optional value.
