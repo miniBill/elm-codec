@@ -67,8 +67,8 @@ module Codec exposing
 
 import Array
 import Dict
-import Json.Decode as JD
-import Json.Encode as JE
+import Json.Decode
+import Json.Encode
 import Set
 
 
@@ -88,7 +88,7 @@ type Codec a
 {-| Represents a JavaScript value.
 -}
 type alias Value =
-    JE.Value
+    Json.Encode.Value
 
 
 {-| A structured error describing exactly how the decoder failed. You can use
@@ -97,7 +97,7 @@ you could show the entire JSON object and show the part causing the failure in
 red.
 -}
 type alias Error =
-    JD.Error
+    Json.Decode.Error
 
 
 
@@ -107,7 +107,7 @@ type alias Error =
 {-| A value that knows how to decode JSON values.
 -}
 type alias Decoder a =
-    JD.Decoder a
+    Json.Decode.Decoder a
 
 
 {-| Extracts the `Decoder` contained inside the `Codec`.
@@ -123,7 +123,7 @@ fails for some reason.
 -}
 decodeString : Codec a -> String -> Result Error a
 decodeString codec =
-    JD.decodeString (decoder codec)
+    Json.Decode.decodeString (decoder codec)
 
 
 {-| Run a `Codec` to decode some JSON `Value`. You can send these JSON values
@@ -131,7 +131,7 @@ through ports, so that is probably the main time you would use this function.
 -}
 decodeValue : Codec a -> Value -> Result Error a
 decodeValue codec =
-    JD.decodeValue (decoder codec)
+    Json.Decode.decodeValue (decoder codec)
 
 
 
@@ -150,7 +150,7 @@ the amount of indentation in the result string.
 -}
 encodeToString : Int -> Codec a -> a -> String
 encodeToString indentation codec =
-    encoder codec >> JE.encode indentation
+    encoder codec >> Json.Encode.encode indentation
 
 
 {-| Convert a value into a Javascript `Value`.
@@ -179,28 +179,28 @@ build encoder_ decoder_ =
 -}
 string : Codec String
 string =
-    build JE.string JD.string
+    build Json.Encode.string Json.Decode.string
 
 
 {-| `Codec` between a JSON boolean and an Elm `Bool`
 -}
 bool : Codec Bool
 bool =
-    build JE.bool JD.bool
+    build Json.Encode.bool Json.Decode.bool
 
 
 {-| `Codec` between a JSON number and an Elm `Int`
 -}
 int : Codec Int
 int =
-    build JE.int JD.int
+    build Json.Encode.int Json.Decode.int
 
 
 {-| `Codec` between a JSON number and an Elm `Float`
 -}
 float : Codec Float
 float =
-    build JE.float JD.float
+    build Json.Encode.float Json.Decode.float
 
 
 {-| `Codec` between a JSON string of length 1 and an Elm `Char`
@@ -208,16 +208,16 @@ float =
 char : Codec Char
 char =
     build
-        (String.fromChar >> JE.string)
-        (JD.string
-            |> JD.andThen
+        (String.fromChar >> Json.Encode.string)
+        (Json.Decode.string
+            |> Json.Decode.andThen
                 (\s ->
                     case String.uncons s of
                         Just ( h, "" ) ->
-                            JD.succeed h
+                            Json.Decode.succeed h
 
                         _ ->
-                            JD.fail "Expected a single char"
+                            Json.Decode.fail "Expected a single char"
                 )
         )
 
@@ -239,12 +239,12 @@ composite enc dec (Codec codec) =
 maybe : Codec a -> Codec (Maybe a)
 maybe codec =
     Codec
-        { decoder = JD.maybe <| decoder codec
+        { decoder = Json.Decode.maybe <| decoder codec
         , encoder =
             \v ->
                 case v of
                     Nothing ->
-                        JE.null
+                        Json.Encode.null
 
                     Just x ->
                         encoder codec x
@@ -255,14 +255,14 @@ maybe codec =
 -}
 list : Codec a -> Codec (List a)
 list =
-    composite JE.list JD.list
+    composite Json.Encode.list Json.Decode.list
 
 
 {-| `Codec` between a JSON array and an Elm `Array`.
 -}
 array : Codec a -> Codec (Array.Array a)
 array =
-    composite JE.array JD.array
+    composite Json.Encode.array Json.Decode.array
 
 
 {-| `Codec` between a JSON object and an Elm `Dict`.
@@ -270,8 +270,8 @@ array =
 dict : Codec a -> Codec (Dict.Dict String a)
 dict =
     composite
-        (\e -> JE.object << Dict.toList << Dict.map (\_ -> e))
-        JD.dict
+        (\e -> Json.Encode.object << Dict.toList << Dict.map (\_ -> e))
+        Json.Decode.dict
 
 
 {-| `Codec` between a JSON array and an Elm `Set`.
@@ -279,8 +279,8 @@ dict =
 set : Codec comparable -> Codec (Set.Set comparable)
 set =
     composite
-        (\e -> JE.list e << Set.toList)
-        (JD.map Set.fromList << JD.list)
+        (\e -> Json.Encode.list e << Set.toList)
+        (Json.Decode.map Set.fromList << Json.Decode.list)
 
 
 {-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
@@ -290,15 +290,15 @@ tuple m1 m2 =
     Codec
         { encoder =
             \( v1, v2 ) ->
-                JE.list identity
+                Json.Encode.list identity
                     [ encoder m1 v1
                     , encoder m2 v2
                     ]
         , decoder =
-            JD.map2
+            Json.Decode.map2
                 (\a b -> ( a, b ))
-                (JD.index 0 <| decoder m1)
-                (JD.index 1 <| decoder m2)
+                (Json.Decode.index 0 <| decoder m1)
+                (Json.Decode.index 1 <| decoder m2)
         }
 
 
@@ -309,17 +309,17 @@ triple m1 m2 m3 =
     Codec
         { encoder =
             \( v1, v2, v3 ) ->
-                JE.list identity
+                Json.Encode.list identity
                     [ encoder m1 v1
                     , encoder m2 v2
                     , encoder m3 v3
                     ]
         , decoder =
-            JD.map3
+            Json.Decode.map3
                 (\a b c -> ( a, b, c ))
-                (JD.index 0 <| decoder m1)
-                (JD.index 1 <| decoder m2)
-                (JD.index 2 <| decoder m3)
+                (Json.Decode.index 0 <| decoder m1)
+                (Json.Decode.index 1 <| decoder m2)
+                (Json.Decode.index 2 <| decoder m3)
         }
 
 
@@ -385,7 +385,7 @@ object : b -> ObjectCodec a b
 object ctor =
     ObjectCodec
         { encoder = \_ -> []
-        , decoder = JD.succeed ctor
+        , decoder = Json.Decode.succeed ctor
         }
 
 
@@ -398,7 +398,7 @@ field : String -> (a -> f) -> Codec f -> ObjectCodec a (f -> b) -> ObjectCodec a
 field name getter codec (ObjectCodec ocodec) =
     ObjectCodec
         { encoder = \v -> ( name, encoder codec <| getter v ) :: ocodec.encoder v
-        , decoder = JD.map2 (\f x -> f x) ocodec.decoder (JD.field name (decoder codec))
+        , decoder = Json.Decode.map2 (\f x -> f x) ocodec.decoder (Json.Decode.field name (decoder codec))
         }
 
 
@@ -423,9 +423,9 @@ maybeField name getter codec (ObjectCodec ocodec) =
                         ocodec.encoder v
         , decoder =
             decoder codec
-                |> JD.field name
-                |> JD.maybe
-                |> JD.map2 (\f x -> f x) ocodec.decoder
+                |> Json.Decode.field name
+                |> Json.Decode.maybe
+                |> Json.Decode.map2 (\f x -> f x) ocodec.decoder
         }
 
 
@@ -447,7 +447,7 @@ nullableField name getter codec ocodec =
 buildObject : ObjectCodec a a -> Codec a
 buildObject (ObjectCodec om) =
     Codec
-        { encoder = \v -> JE.object <| List.reverse <| om.encoder v
+        { encoder = \v -> Json.Encode.object <| List.reverse <| om.encoder v
         , decoder = om.decoder
         }
 
@@ -511,9 +511,9 @@ variant :
 variant name matchPiece decoderPiece (CustomCodec am) =
     let
         enc v =
-            JE.object
-                [ ( "tag", JE.string name )
-                , ( "args", JE.list identity v )
+            Json.Encode.object
+                [ ( "tag", Json.Encode.string name )
+                , ( "args", Json.Encode.list identity v )
                 ]
     in
     CustomCodec
@@ -532,7 +532,7 @@ variant0 :
 variant0 name ctor =
     variant name
         (\c -> c [])
-        (JD.succeed ctor)
+        (Json.Decode.succeed ctor)
 
 
 {-| Define a variant with 1 parameters for a custom type.
@@ -550,8 +550,8 @@ variant1 name ctor m1 =
                 [ encoder m1 v
                 ]
         )
-        (JD.map ctor
-            (JD.index 0 <| decoder m1)
+        (Json.Decode.map ctor
+            (Json.Decode.index 0 <| decoder m1)
         )
 
 
@@ -572,9 +572,9 @@ variant2 name ctor m1 m2 =
                 , encoder m2 v2
                 ]
         )
-        (JD.map2 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
+        (Json.Decode.map2 ctor
+            (Json.Decode.index 0 <| decoder m1)
+            (Json.Decode.index 1 <| decoder m2)
         )
 
 
@@ -597,10 +597,10 @@ variant3 name ctor m1 m2 m3 =
                 , encoder m3 v3
                 ]
         )
-        (JD.map3 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
+        (Json.Decode.map3 ctor
+            (Json.Decode.index 0 <| decoder m1)
+            (Json.Decode.index 1 <| decoder m2)
+            (Json.Decode.index 2 <| decoder m3)
         )
 
 
@@ -625,11 +625,11 @@ variant4 name ctor m1 m2 m3 m4 =
                 , encoder m4 v4
                 ]
         )
-        (JD.map4 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
+        (Json.Decode.map4 ctor
+            (Json.Decode.index 0 <| decoder m1)
+            (Json.Decode.index 1 <| decoder m2)
+            (Json.Decode.index 2 <| decoder m3)
+            (Json.Decode.index 3 <| decoder m4)
         )
 
 
@@ -656,12 +656,12 @@ variant5 name ctor m1 m2 m3 m4 m5 =
                 , encoder m5 v5
                 ]
         )
-        (JD.map5 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
+        (Json.Decode.map5 ctor
+            (Json.Decode.index 0 <| decoder m1)
+            (Json.Decode.index 1 <| decoder m2)
+            (Json.Decode.index 2 <| decoder m3)
+            (Json.Decode.index 3 <| decoder m4)
+            (Json.Decode.index 4 <| decoder m5)
         )
 
 
@@ -690,13 +690,13 @@ variant6 name ctor m1 m2 m3 m4 m5 m6 =
                 , encoder m6 v6
                 ]
         )
-        (JD.map6 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
-            (JD.index 5 <| decoder m6)
+        (Json.Decode.map6 ctor
+            (Json.Decode.index 0 <| decoder m1)
+            (Json.Decode.index 1 <| decoder m2)
+            (Json.Decode.index 2 <| decoder m3)
+            (Json.Decode.index 3 <| decoder m4)
+            (Json.Decode.index 4 <| decoder m5)
+            (Json.Decode.index 5 <| decoder m6)
         )
 
 
@@ -727,14 +727,14 @@ variant7 name ctor m1 m2 m3 m4 m5 m6 m7 =
                 , encoder m7 v7
                 ]
         )
-        (JD.map7 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
-            (JD.index 5 <| decoder m6)
-            (JD.index 6 <| decoder m7)
+        (Json.Decode.map7 ctor
+            (Json.Decode.index 0 <| decoder m1)
+            (Json.Decode.index 1 <| decoder m2)
+            (Json.Decode.index 2 <| decoder m3)
+            (Json.Decode.index 3 <| decoder m4)
+            (Json.Decode.index 4 <| decoder m5)
+            (Json.Decode.index 5 <| decoder m6)
+            (Json.Decode.index 6 <| decoder m7)
         )
 
 
@@ -767,15 +767,15 @@ variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
                 , encoder m8 v8
                 ]
         )
-        (JD.map8 ctor
-            (JD.index 0 <| decoder m1)
-            (JD.index 1 <| decoder m2)
-            (JD.index 2 <| decoder m3)
-            (JD.index 3 <| decoder m4)
-            (JD.index 4 <| decoder m5)
-            (JD.index 5 <| decoder m6)
-            (JD.index 6 <| decoder m7)
-            (JD.index 7 <| decoder m8)
+        (Json.Decode.map8 ctor
+            (Json.Decode.index 0 <| decoder m1)
+            (Json.Decode.index 1 <| decoder m2)
+            (Json.Decode.index 2 <| decoder m3)
+            (Json.Decode.index 3 <| decoder m4)
+            (Json.Decode.index 4 <| decoder m5)
+            (Json.Decode.index 5 <| decoder m6)
+            (Json.Decode.index 6 <| decoder m7)
+            (Json.Decode.index 7 <| decoder m8)
         )
 
 
@@ -786,15 +786,15 @@ buildCustom (CustomCodec am) =
     Codec
         { encoder = \v -> am.match v
         , decoder =
-            JD.field "tag" JD.string
-                |> JD.andThen
+            Json.Decode.field "tag" Json.Decode.string
+                |> Json.Decode.andThen
                     (\tag ->
                         case Dict.get tag am.decoder of
                             Nothing ->
-                                JD.fail <| "tag " ++ tag ++ " did not match"
+                                Json.Decode.fail <| "tag " ++ tag ++ " did not match"
 
                             Just dec ->
-                                JD.field "args" dec
+                                Json.Decode.field "args" dec
                     )
         }
 
@@ -814,7 +814,7 @@ oneOf : Codec a -> List (Codec a) -> Codec a
 oneOf main alts =
     Codec
         { encoder = encoder main
-        , decoder = JD.oneOf <| decoder main :: List.map decoder alts
+        , decoder = Json.Decode.oneOf <| decoder main :: List.map decoder alts
         }
 
 
@@ -827,7 +827,7 @@ oneOf main alts =
 map : (a -> b) -> (b -> a) -> Codec a -> Codec b
 map go back codec =
     Codec
-        { decoder = JD.map go <| decoder codec
+        { decoder = Json.Decode.map go <| decoder codec
         , encoder = \v -> back v |> encoder codec
         }
 
@@ -843,8 +843,8 @@ case. The encoder will produce `null`.
 fail : String -> Codec a
 fail msg =
     Codec
-        { decoder = JD.fail msg
-        , encoder = always JE.null
+        { decoder = Json.Decode.fail msg
+        , encoder = always Json.Encode.null
         }
 
 
@@ -853,7 +853,7 @@ fail msg =
 andThen : (a -> Codec b) -> (b -> a) -> Codec a -> Codec b
 andThen dec enc c =
     Codec
-        { decoder = decoder c |> JD.andThen (dec >> decoder)
+        { decoder = decoder c |> Json.Decode.andThen (dec >> decoder)
         , encoder = encoder c << enc
         }
 
@@ -871,8 +871,8 @@ recursive f =
 succeed : a -> Codec a
 succeed default_ =
     Codec
-        { decoder = JD.succeed default_
-        , encoder = \_ -> JE.null
+        { decoder = Json.Decode.succeed default_
+        , encoder = \_ -> Json.Encode.null
         }
 
 
@@ -889,7 +889,7 @@ Have a look at the Json.Decode docs for examples.
 lazy : (() -> Codec a) -> Codec a
 lazy f =
     Codec
-        { decoder = JD.lazy (\_ -> decoder <| f ())
+        { decoder = Json.Decode.lazy (\_ -> decoder <| f ())
         , encoder = \v -> encoder (f ()) v
         }
 
@@ -900,5 +900,5 @@ value : Codec Value
 value =
     Codec
         { encoder = identity
-        , decoder = JD.value
+        , decoder = Json.Decode.value
         }
