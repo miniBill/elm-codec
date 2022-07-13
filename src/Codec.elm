@@ -1,7 +1,7 @@
 module Codec exposing
     ( Codec, build
-    , decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
+    , decoder, decodeString, decodeValue
     , bool, int, float, char, string
     , ObjectCodec, object, field, maybeField, nullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
@@ -16,14 +16,14 @@ module Codec exposing
 @docs Codec, build
 
 
-# Decode
-
-@docs decoder, decodeString, decodeValue
-
-
 # Encode
 
 @docs encoder, encodeToString, encodeToValue
+
+
+# Decode
+
+@docs decoder, decodeString, decodeValue
 
 
 # Primitives
@@ -90,6 +90,32 @@ build a b =
 
 
 
+-- ENCODE
+
+
+{-| Extracts the encoding function contained inside the `Codec`.
+-}
+encoder : Codec a -> a -> Json.Decode.Value
+encoder (Codec a) =
+    a.encoder
+
+
+{-| Convert a value into a prettified JSON string. The first argument specifies
+the amount of indentation in the result string.
+-}
+encodeToString : Int -> Codec a -> a -> String
+encodeToString indentation a =
+    encoder a >> Json.Encode.encode indentation
+
+
+{-| Convert a value into a Javascript `Value`.
+-}
+encodeToValue : Codec a -> a -> Json.Decode.Value
+encodeToValue a =
+    encoder a
+
+
+
 -- DECODE
 
 
@@ -115,32 +141,6 @@ through ports, so that is probably the main time you would use this function.
 decodeValue : Codec a -> Json.Decode.Value -> Result Json.Decode.Error a
 decodeValue a =
     Json.Decode.decodeValue (decoder a)
-
-
-
--- ENCODE
-
-
-{-| Extracts the encoding function contained inside the `Codec`.
--}
-encoder : Codec a -> a -> Json.Decode.Value
-encoder (Codec a) =
-    a.encoder
-
-
-{-| Convert a value into a prettified JSON string. The first argument specifies
-the amount of indentation in the result string.
--}
-encodeToString : Int -> Codec a -> a -> String
-encodeToString indentation a =
-    encoder a >> Json.Encode.encode indentation
-
-
-{-| Convert a value into a Javascript `Value`.
--}
-encodeToValue : Codec a -> a -> Json.Decode.Value
-encodeToValue a =
-    encoder a
 
 
 
