@@ -263,10 +263,19 @@ maybeField name getter codec (Record a) =
                         a.encoder x
         , decoder =
             Json.Decode.oneOf
-                [ Json.Decode.field name Json.Decode.value
-                    |> Json.Decode.andThen (\_ -> decoder (maybe codec))
+                [ Json.Decode.field name Json.Decode.value |> Json.Decode.map Just
                 , Json.Decode.succeed Nothing
                 ]
+                |> Json.Decode.andThen
+                    (\x ->
+                        case x of
+                            Just _ ->
+                                Json.Decode.field name (decoder codec)
+                                    |> Json.Decode.map Just
+
+                            Nothing ->
+                                Json.Decode.succeed Nothing
+                    )
                 |> Json.Decode.map2 (\f x -> f x) a.decoder
         }
 
