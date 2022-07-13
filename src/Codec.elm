@@ -845,11 +845,11 @@ This is particularly useful for backwards compatibility. You would pass the curr
 and the old ones (eventually `map`ped) as a fallback list to use while decoding.
 
 -}
-oneOf : Codec a -> List (Codec a) -> Codec a
-oneOf main alts =
+oneOf : List (Codec a) -> Codec a -> Codec a
+oneOf codecs a =
     Codec
-        { encoder = encoder main
-        , decoder = Json.Decode.oneOf (decoder main :: List.map decoder alts)
+        { encoder = encoder a
+        , decoder = Json.Decode.oneOf (decoder a :: List.map decoder codecs)
         }
 
 
