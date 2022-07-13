@@ -1,5 +1,5 @@
 module Codec exposing
-    ( Codec, Value, Error
+    ( Codec, Error
     , Decoder, decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
@@ -16,7 +16,7 @@ module Codec exposing
 
 # Definition
 
-@docs Codec, Value, Error
+@docs Codec, Error
 
 
 # Decode
@@ -80,15 +80,9 @@ import Set
 -}
 type Codec a
     = Codec
-        { encoder : a -> Value
+        { encoder : a -> Json.Decode.Value
         , decoder : Decoder a
         }
-
-
-{-| Represents a JavaScript value.
--}
-type alias Value =
-    Json.Encode.Value
 
 
 {-| A structured error describing exactly how the decoder failed. You can use
@@ -129,7 +123,7 @@ decodeString codec =
 {-| Run a `Codec` to decode some JSON `Value`. You can send these JSON values
 through ports, so that is probably the main time you would use this function.
 -}
-decodeValue : Codec a -> Value -> Result Error a
+decodeValue : Codec a -> Json.Decode.Value -> Result Error a
 decodeValue codec =
     Json.Decode.decodeValue (decoder codec)
 
@@ -140,7 +134,7 @@ decodeValue codec =
 
 {-| Extracts the encoding function contained inside the `Codec`.
 -}
-encoder : Codec a -> a -> Value
+encoder : Codec a -> a -> Json.Decode.Value
 encoder (Codec m) =
     m.encoder
 
@@ -155,7 +149,7 @@ encodeToString indentation codec =
 
 {-| Convert a value into a Javascript `Value`.
 -}
-encodeToValue : Codec a -> a -> Value
+encodeToValue : Codec a -> a -> Json.Decode.Value
 encodeToValue codec =
     encoder codec
 
@@ -167,7 +161,7 @@ encodeToValue codec =
 {-| Build your own custom `Codec`.
 Useful if you have pre-existing `Decoder`s you need to use.
 -}
-build : (a -> Value) -> Decoder a -> Codec a
+build : (a -> Json.Decode.Value) -> Decoder a -> Codec a
 build encoder_ decoder_ =
     Codec
         { encoder = encoder_
@@ -226,7 +220,7 @@ char =
 -- DATA STRUCTURES
 
 
-composite : ((b -> Value) -> (a -> Value)) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
+composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Decoder b -> Decoder a) -> Codec b -> Codec a
 composite enc dec (Codec codec) =
     Codec
         { encoder = enc codec.encoder
@@ -349,7 +343,7 @@ result errorCodec valueCodec =
 -}
 type ObjectCodec a b
     = ObjectCodec
-        { encoder : a -> List ( String, Value )
+        { encoder : a -> List ( String, Json.Decode.Value )
         , decoder : Decoder b
         }
 
@@ -504,7 +498,7 @@ custom match =
 
 variant :
     String
-    -> ((List Value -> Value) -> a)
+    -> ((List Json.Decode.Value -> Json.Decode.Value) -> a)
     -> Decoder v
     -> CustomCodec (a -> b) v
     -> CustomCodec b v
@@ -527,7 +521,7 @@ variant name matchPiece decoderPiece (CustomCodec am) =
 variant0 :
     String
     -> v
-    -> CustomCodec (Value -> a) v
+    -> CustomCodec (Json.Decode.Value -> a) v
     -> CustomCodec a v
 variant0 name ctor =
     variant name
@@ -541,7 +535,7 @@ variant1 :
     String
     -> (a -> v)
     -> Codec a
-    -> CustomCodec ((a -> Value) -> b) v
+    -> CustomCodec ((a -> Json.Decode.Value) -> b) v
     -> CustomCodec b v
 variant1 name ctor m1 =
     variant name
@@ -562,7 +556,7 @@ variant2 :
     -> (a -> b -> v)
     -> Codec a
     -> Codec b
-    -> CustomCodec ((a -> b -> Value) -> c) v
+    -> CustomCodec ((a -> b -> Json.Decode.Value) -> c) v
     -> CustomCodec c v
 variant2 name ctor m1 m2 =
     variant name
@@ -586,7 +580,7 @@ variant3 :
     -> Codec a
     -> Codec b
     -> Codec c
-    -> CustomCodec ((a -> b -> c -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> Json.Decode.Value) -> partial) v
     -> CustomCodec partial v
 variant3 name ctor m1 m2 m3 =
     variant name
@@ -613,7 +607,7 @@ variant4 :
     -> Codec b
     -> Codec c
     -> Codec d
-    -> CustomCodec ((a -> b -> c -> d -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> Json.Decode.Value) -> partial) v
     -> CustomCodec partial v
 variant4 name ctor m1 m2 m3 m4 =
     variant name
@@ -643,7 +637,7 @@ variant5 :
     -> Codec c
     -> Codec d
     -> Codec e
-    -> CustomCodec ((a -> b -> c -> d -> e -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> Json.Decode.Value) -> partial) v
     -> CustomCodec partial v
 variant5 name ctor m1 m2 m3 m4 m5 =
     variant name
@@ -676,7 +670,7 @@ variant6 :
     -> Codec d
     -> Codec e
     -> Codec f
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> f -> Json.Decode.Value) -> partial) v
     -> CustomCodec partial v
 variant6 name ctor m1 m2 m3 m4 m5 m6 =
     variant name
@@ -712,7 +706,7 @@ variant7 :
     -> Codec e
     -> Codec f
     -> Codec g
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> Json.Decode.Value) -> partial) v
     -> CustomCodec partial v
 variant7 name ctor m1 m2 m3 m4 m5 m6 m7 =
     variant name
@@ -751,7 +745,7 @@ variant8 :
     -> Codec f
     -> Codec g
     -> Codec h
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> h -> Value) -> partial) v
+    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> h -> Json.Decode.Value) -> partial) v
     -> CustomCodec partial v
 variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
     variant name
@@ -781,7 +775,7 @@ variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
 
 {-| Build a `Codec` for a fully specified custom type.
 -}
-buildCustom : CustomCodec (a -> Value) a -> Codec a
+buildCustom : CustomCodec (a -> Json.Decode.Value) a -> Codec a
 buildCustom (CustomCodec am) =
     Codec
         { encoder = \v -> am.match v
@@ -896,7 +890,7 @@ lazy f =
 
 {-| Create a `Codec` that doesn't transform the JSON value, just brings it to and from Elm as a `Value`.
 -}
-value : Codec Value
+value : Codec Json.Decode.Value
 value =
     Codec
         { encoder = identity
