@@ -8,18 +8,6 @@ import Set
 import Test
 
 
-suite : Test.Test
-suite =
-    Test.describe "Testing codecs."
-        [ tuplesTest
-        , recordsTest
-        , customTypesTest
-        , opaqueCustomTypesTest
-        , commonCustomTypesTest
-        , helperTest
-        ]
-
-
 tuplesTest : Test.Test
 tuplesTest =
     Test.describe "Tuples."
