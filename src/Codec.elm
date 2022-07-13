@@ -849,7 +849,7 @@ oneOf : Codec a -> List (Codec a) -> Codec a
 oneOf main alts =
     Codec
         { encoder = encoder main
-        , decoder = Json.Decode.oneOf <| decoder main :: List.map decoder alts
+        , decoder = Json.Decode.oneOf (decoder main :: List.map decoder alts)
         }
 
 
@@ -860,7 +860,7 @@ lazy : (() -> Codec a) -> Codec a
 lazy f =
     Codec
         { encoder = \v -> encoder (f ()) v
-        , decoder = Json.Decode.lazy (\_ -> decoder <| f ())
+        , decoder = Json.Decode.lazy (\_ -> decoder (f ()))
         }
 
 
