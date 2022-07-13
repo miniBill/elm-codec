@@ -7,9 +7,7 @@ module Codec exposing
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , int, float, char, string, list, array, dict, set
     , bool, maybe, result
-    , oneOf
-    , map
-    , succeed, recursive, fail, andThen, lazy, value, constant
+    , oneOf, map, succeed, recursive, fail, andThen, lazy, value, constant
     )
 
 {-| A `Codec` contains a JSON encoder and decoder.
@@ -52,19 +50,9 @@ module Codec exposing
 @docs bool, maybe, result
 
 
-# Inconsistent structure
+# Helper functions
 
-@docs oneOf
-
-
-# Mapping
-
-@docs map
-
-
-# Fancy Codecs
-
-@docs succeed, recursive, fail, andThen, lazy, value, constant
+@docs oneOf, map, succeed, recursive, fail, andThen, lazy, value, constant
 
 -}
 
@@ -827,7 +815,7 @@ result error a =
 
 
 
--- INCONSISTENT STRUCTURE
+-- HELPER FUNCTIONS
 
 
 {-| Try a set of decoders (in order).
@@ -845,10 +833,6 @@ oneOf main alts =
         }
 
 
-
--- MAPPING
-
-
 {-| Transform a `Codec`.
 -}
 map : (a -> b) -> (b -> a) -> Codec a -> Codec b
@@ -857,10 +841,6 @@ map go back codec =
         { decoder = Json.Decode.map go <| decoder codec
         , encoder = \v -> back v |> encoder codec
         }
-
-
-
--- FANCY
 
 
 {-| Ignore the JSON and make the decoder fail. This is handy when used with
