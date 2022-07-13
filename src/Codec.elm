@@ -750,8 +750,8 @@ list a =
 {-| `Codec` between a JSON array and an Elm `Array`.
 -}
 array : Codec a -> Codec (Array.Array a)
-array =
-    composite Json.Encode.array Json.Decode.array
+array a =
+    build (Json.Encode.array (encoder a)) (Json.Decode.array (decoder a))
 
 
 {-| `Codec` between a JSON object and an Elm `Dict`.
