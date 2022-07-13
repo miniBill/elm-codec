@@ -790,7 +790,7 @@ bool =
         |> buildCustom
 
 
-{-| Represents an optional value.
+{-| `Codec` for `Maybe` values.
 -}
 maybe : Codec a -> Codec (Maybe a)
 maybe a =
