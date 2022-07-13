@@ -7,7 +7,7 @@ module Codec exposing
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , int, float, char, string, list, array, dict, set
     , bool, maybe, result
-    , map, andThen, oneOf, lazy, succeed, fail, value, recursive, constant
+    , map, andThen, oneOf, lazy, succeed, fail, value
     )
 
 {-| A `Codec` contains a JSON encoder and decoder.
@@ -52,7 +52,7 @@ module Codec exposing
 
 # Helper functions
 
-@docs map, andThen, oneOf, lazy, succeed, fail, value, recursive, constant
+@docs map, andThen, oneOf, lazy, succeed, fail, value
 
 -}
 
@@ -894,18 +894,3 @@ value =
         { encoder = identity
         , decoder = Json.Decode.value
         }
-
-
-{-| Create a `Codec` for a recursive data structure.
-The argument to the function you need to pass is the fully formed `Codec`.
--}
-recursive : (Codec a -> Codec a) -> Codec a
-recursive f =
-    f <| lazy (\_ -> recursive f)
-
-
-{-| Create a `Codec` that produces null as JSON and always decodes as the same value. Obsolete alias of `succeed`, will be removed in a future version.
--}
-constant : a -> Codec a
-constant =
-    succeed
