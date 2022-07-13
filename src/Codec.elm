@@ -7,7 +7,7 @@ module Codec exposing
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , int, float, char, string, list, array, dict, set
     , bool, maybe, result
-    , oneOf, map, succeed, recursive, fail, andThen, lazy, value, constant
+    , map, andThen, oneOf, lazy, succeed, fail, value, recursive, constant
     )
 
 {-| A `Codec` contains a JSON encoder and decoder.
@@ -52,7 +52,7 @@ module Codec exposing
 
 # Helper functions
 
-@docs oneOf, map, succeed, recursive, fail, andThen, lazy, value, constant
+@docs map, andThen, oneOf, lazy, succeed, fail, value, recursive, constant
 
 -}
 
@@ -818,6 +818,26 @@ result error a =
 -- HELPER FUNCTIONS
 
 
+{-| Transform a `Codec`.
+-}
+map : (a -> b) -> (b -> a) -> Codec a -> Codec b
+map go back codec =
+    Codec
+        { decoder = Json.Decode.map go <| decoder codec
+        , encoder = \v -> back v |> encoder codec
+        }
+
+
+{-| Create codecs that depend on previous results.
+-}
+andThen : (a -> Codec b) -> (b -> a) -> Codec a -> Codec b
+andThen dec enc c =
+    Codec
+        { decoder = decoder c |> Json.Decode.andThen (dec >> decoder)
+        , encoder = encoder c << enc
+        }
+
+
 {-| Try a set of decoders (in order).
 The first argument is used for encoding and decoding, the list of other codecs is used as a fallback while decoding.
 
@@ -833,13 +853,24 @@ oneOf main alts =
         }
 
 
-{-| Transform a `Codec`.
+{-| This is useful for recursive structures that are not easily modeled with `recursive`.
+Have a look at the Json.Decode docs for examples.
 -}
-map : (a -> b) -> (b -> a) -> Codec a -> Codec b
-map go back codec =
+lazy : (() -> Codec a) -> Codec a
+lazy f =
     Codec
-        { decoder = Json.Decode.map go <| decoder codec
-        , encoder = \v -> back v |> encoder codec
+        { decoder = Json.Decode.lazy (\_ -> decoder <| f ())
+        , encoder = \v -> encoder (f ()) v
+        }
+
+
+{-| Create a `Codec` that produces null as JSON and always decodes as the same value.
+-}
+succeed : a -> Codec a
+succeed default_ =
+    Codec
+        { decoder = Json.Decode.succeed default_
+        , encoder = \_ -> Json.Encode.null
         }
 
 
@@ -855,13 +886,13 @@ fail msg =
         }
 
 
-{-| Create codecs that depend on previous results.
+{-| Create a `Codec` that doesn't transform the JSON value, just brings it to and from Elm as a `Value`.
 -}
-andThen : (a -> Codec b) -> (b -> a) -> Codec a -> Codec b
-andThen dec enc c =
+value : Codec Json.Decode.Value
+value =
     Codec
-        { decoder = decoder c |> Json.Decode.andThen (dec >> decoder)
-        , encoder = encoder c << enc
+        { encoder = identity
+        , decoder = Json.Decode.value
         }
 
 
@@ -873,39 +904,8 @@ recursive f =
     f <| lazy (\_ -> recursive f)
 
 
-{-| Create a `Codec` that produces null as JSON and always decodes as the same value.
--}
-succeed : a -> Codec a
-succeed default_ =
-    Codec
-        { decoder = Json.Decode.succeed default_
-        , encoder = \_ -> Json.Encode.null
-        }
-
-
 {-| Create a `Codec` that produces null as JSON and always decodes as the same value. Obsolete alias of `succeed`, will be removed in a future version.
 -}
 constant : a -> Codec a
 constant =
     succeed
-
-
-{-| This is useful for recursive structures that are not easily modeled with `recursive`.
-Have a look at the Json.Decode docs for examples.
--}
-lazy : (() -> Codec a) -> Codec a
-lazy f =
-    Codec
-        { decoder = Json.Decode.lazy (\_ -> decoder <| f ())
-        , encoder = \v -> encoder (f ()) v
-        }
-
-
-{-| Create a `Codec` that doesn't transform the JSON value, just brings it to and from Elm as a `Value`.
--}
-value : Codec Json.Decode.Value
-value =
-    Codec
-        { encoder = identity
-        , decoder = Json.Decode.value
-        }
