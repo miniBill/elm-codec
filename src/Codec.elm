@@ -867,10 +867,10 @@ lazy fn =
 {-| Create a `Codec` that produces null as JSON and always decodes as the same value.
 -}
 succeed : a -> Codec a
-succeed default_ =
+succeed a =
     Codec
         { encoder = \_ -> Json.Encode.null
-        , decoder = Json.Decode.succeed default_
+        , decoder = Json.Decode.succeed a
         }
 
 
@@ -879,10 +879,10 @@ succeed default_ =
 case. The encoder will produce `null`.
 -}
 fail : String -> Codec a
-fail msg =
+fail a =
     Codec
-        { encoder = always Json.Encode.null
-        , decoder = Json.Decode.fail msg
+        { encoder = \_ -> Json.Encode.null
+        , decoder = Json.Decode.fail a
         }
 
 
