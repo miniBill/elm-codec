@@ -2,7 +2,7 @@ module Codec exposing
     ( Codec
     , decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
-    , string, bool, int, float, char
+    , bool, int, float, char, string
     , maybe, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, maybeField, nullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
@@ -31,7 +31,7 @@ module Codec exposing
 
 # Primitives
 
-@docs string, bool, int, float, char
+@docs bool, int, float, char, string
 
 
 # Data Structures
@@ -154,13 +154,6 @@ build a b =
         }
 
 
-{-| `Codec` between a JSON string and an Elm `String`
--}
-string : Codec String
-string =
-    build Json.Encode.string Json.Decode.string
-
-
 {-| `Codec` between a JSON boolean and an Elm `Bool`
 -}
 bool : Codec Bool
@@ -199,6 +192,13 @@ char =
                             Json.Decode.fail "Expected a single char"
                 )
         )
+
+
+{-| `Codec` between a JSON string and an Elm `String`
+-}
+string : Codec String
+string =
+    build Json.Encode.string Json.Decode.string
 
 
 
