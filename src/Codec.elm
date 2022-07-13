@@ -764,10 +764,8 @@ dict k v =
 {-| `Codec` between a JSON array and an Elm `Set`.
 -}
 set : Codec comparable -> Codec (Set.Set comparable)
-set =
-    composite
-        (\e -> Json.Encode.list e << Set.toList)
-        (Json.Decode.map Set.fromList << Json.Decode.list)
+set a =
+    list a |> map Set.fromList Set.toList
 
 
 
