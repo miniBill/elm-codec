@@ -86,7 +86,7 @@ point2Fuzzer =
 
 point2Codec : Codec Point2
 point2Codec =
-    Codec.object Point2
+    Codec.record Point2
         |> Codec.field "x" .x Codec.int
         |> Codec.field "y" .y Codec.int
         |> Codec.buildObject
@@ -106,7 +106,7 @@ point2_5Fuzzer =
 
 point2_5Codec : Codec Point2_5
 point2_5Codec =
-    Codec.object Point2_5
+    Codec.record Point2_5
         |> Codec.field "x" .x Codec.int
         |> Codec.field "y" .y Codec.int
         |> Codec.maybeField "z" .z Codec.int

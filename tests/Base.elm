@@ -101,13 +101,13 @@ objectTests : List Test
 objectTests =
     [ describe "with 0 fields"
         [ roundtrips (Fuzz.constant {})
-            (Codec.object {}
+            (Codec.record {}
                 |> Codec.buildObject
             )
         ]
     , describe "with 1 field"
         [ roundtrips (Fuzz.map (\i -> { fname = i }) Fuzz.int)
-            (Codec.object (\i -> { fname = i })
+            (Codec.record (\i -> { fname = i })
                 |> Codec.field "fname" .fname Codec.int
                 |> Codec.buildObject
             )
@@ -123,7 +123,7 @@ objectTests =
                 Fuzz.int
                 Fuzz.int
             )
-            (Codec.object
+            (Codec.record
                 (\a b ->
                     { a = a
                     , b = b
@@ -137,13 +137,13 @@ objectTests =
     , describe "nullableField vs maybeField" <|
         let
             nullableCodec =
-                Codec.object
+                Codec.record
                     (\f -> { f = f })
                     |> Codec.nullableField "f" .f Codec.int
                     |> Codec.buildObject
 
             maybeCodec =
-                Codec.object
+                Codec.record
                     (\f -> { f = f })
                     |> Codec.maybeField "f" .f Codec.int
                     |> Codec.buildObject

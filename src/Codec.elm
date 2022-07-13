@@ -3,7 +3,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
     , bool, int, float, char, string
-    , Record, object, field, maybeField, nullableField, buildObject
+    , Record, record, field, maybeField, nullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , maybe, list, array, dict, set, tuple, triple, result
     , oneOf
@@ -33,7 +33,7 @@ module Codec exposing
 
 # Records
 
-@docs Record, object, field, maybeField, nullableField, buildObject
+@docs Record, record, field, maybeField, nullableField, buildObject
 
 
 # Custom Types
@@ -198,7 +198,7 @@ string =
 -- RECORDS
 
 
-{-| A partially built `Codec` for an object.
+{-| A partially built `Codec` for an record.
 -}
 type Record a b
     = Record
@@ -207,8 +207,8 @@ type Record a b
         }
 
 
-{-| Start creating a `Codec` for an object. You should pass the main constructor as argument.
-If you don't have one (for example it's a simple type with no name), you should pass a function that given the field values builds an object.
+{-| Start creating a `Codec` for an record. You should pass the main constructor as argument.
+If you don't have one (for example it's a simple type with no name), you should pass a function that given the field values builds an record.
 
 Example with constructor:
 
@@ -219,7 +219,7 @@ Example with constructor:
 
     pointCodec : Codec Point
     pointCodec =
-        Codec.object Point
+        Codec.record Point
             |> Codec.field "x" .x Codec.float
             |> Codec.field "y" .y Codec.float
             |> Codec.buildObject
@@ -228,14 +228,14 @@ Example without constructor:
 
     pointCodec : Codec { x : Int, y : Bool }
     pointCodec =
-        Codec.object (\x y -> { x = x, y = y })
+        Codec.record (\x y -> { x = x, y = y })
             |> Codec.field "x" .x Codec.int
             |> Codec.field "y" .y Codec.bool
             |> Codec.buildObject
 
 -}
-object : b -> Record a b
-object ctor =
+record : b -> Record a b
+record ctor =
     Record
         { encoder = \_ -> []
         , decoder = Json.Decode.succeed ctor
@@ -260,7 +260,7 @@ field name getter codec (Record ocodec) =
 This is particularly useful for evolving your `Codec`s.
 
 If the field is not present in the input then it gets decoded to `Nothing`.
-If the optional field's value is `Nothing` then the resulting object will not contain that field.
+If the optional field's value is `Nothing` then the resulting record will not contain that field.
 
 -}
 maybeField : String -> (a -> Maybe f) -> Codec f -> Record a (Maybe f -> b) -> Record a b
@@ -285,7 +285,7 @@ maybeField name getter codec (Record ocodec) =
 {-| Specify the name getter and `Codec` for a required field, whose value can be `null`.
 
 If the field is not present in the input then _the decoding fails_.
-If the field's value is `Nothing` then the resulting object will contain the field with a `null` value.
+If the field's value is `Nothing` then the resulting record will contain the field with a `null` value.
 
 This is a shorthand for a field having a codec built using `Codec.maybe`.
 
