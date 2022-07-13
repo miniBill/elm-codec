@@ -3,7 +3,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
     , bool, int, float, char, string
-    , Record, record, field, maybeField, buildObject
+    , Record, record, field, maybeField, buildRecord
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , maybe, list, array, dict, set, tuple, triple, result
     , oneOf
@@ -33,7 +33,7 @@ module Codec exposing
 
 # Records
 
-@docs Record, record, field, maybeField, buildObject
+@docs Record, record, field, maybeField, buildRecord
 
 
 # Custom Types
@@ -222,7 +222,7 @@ Example with constructor:
         Codec.record Point
             |> Codec.field "x" .x Codec.float
             |> Codec.field "y" .y Codec.float
-            |> Codec.buildObject
+            |> Codec.buildRecord
 
 Example without constructor:
 
@@ -231,7 +231,7 @@ Example without constructor:
         Codec.record (\x y -> { x = x, y = y })
             |> Codec.field "x" .x Codec.int
             |> Codec.field "y" .y Codec.bool
-            |> Codec.buildObject
+            |> Codec.buildRecord
 
 -}
 record : b -> Record a b
@@ -286,11 +286,11 @@ maybeField name getter codec (Record a) =
 
 {-| Create a `Codec` from a fully specified `Record`.
 -}
-buildObject : Record a a -> Codec a
-buildObject (Record om) =
+buildRecord : Record a a -> Codec a
+buildRecord (Record a) =
     Codec
-        { encoder = \v -> Json.Encode.object <| List.reverse <| om.encoder v
-        , decoder = om.decoder
+        { encoder = \x -> a.encoder x |> List.reverse |> Json.Encode.object
+        , decoder = a.decoder
         }
 
 

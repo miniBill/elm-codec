@@ -89,7 +89,7 @@ point2Codec =
     Codec.record Point2
         |> Codec.field "x" .x Codec.int
         |> Codec.field "y" .y Codec.int
-        |> Codec.buildObject
+        |> Codec.buildRecord
 
 
 type alias Point2_5 =
@@ -110,7 +110,7 @@ point2_5Codec =
         |> Codec.field "x" .x Codec.int
         |> Codec.field "y" .y Codec.int
         |> Codec.maybeField "z" .z Codec.int
-        |> Codec.buildObject
+        |> Codec.buildRecord
 
 
 addMaybeField : List Test
