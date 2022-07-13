@@ -3,9 +3,10 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
     , bool, int, float, char, string
+    , tuple, triple
     , Record, record, field, maybeField, buildRecord
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
-    , maybe, list, array, dict, set, tuple, triple, result
+    , maybe, list, array, dict, set, result
     , oneOf
     , map
     , succeed, recursive, fail, andThen, lazy, value, constant
@@ -31,6 +32,11 @@ module Codec exposing
 @docs bool, int, float, char, string
 
 
+# Tuples
+
+@docs tuple, triple
+
+
 # Records
 
 @docs Record, record, field, maybeField, buildRecord
@@ -43,7 +49,7 @@ module Codec exposing
 
 # Data Structures
 
-@docs maybe, list, array, dict, set, tuple, triple, result
+@docs maybe, list, array, dict, set, result
 
 
 # Inconsistent structure
@@ -192,6 +198,50 @@ char =
 string : Codec String
 string =
     build Json.Encode.string Json.Decode.string
+
+
+
+-- TUPLES
+
+
+{-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
+-}
+tuple : Codec a -> Codec b -> Codec ( a, b )
+tuple m1 m2 =
+    Codec
+        { encoder =
+            \( v1, v2 ) ->
+                Json.Encode.list identity
+                    [ encoder m1 v1
+                    , encoder m2 v2
+                    ]
+        , decoder =
+            Json.Decode.map2
+                (\a b -> ( a, b ))
+                (Json.Decode.index 0 <| decoder m1)
+                (Json.Decode.index 1 <| decoder m2)
+        }
+
+
+{-| `Codec` between a JSON array of length 3 and an Elm triple.
+-}
+triple : Codec a -> Codec b -> Codec c -> Codec ( a, b, c )
+triple m1 m2 m3 =
+    Codec
+        { encoder =
+            \( v1, v2, v3 ) ->
+                Json.Encode.list identity
+                    [ encoder m1 v1
+                    , encoder m2 v2
+                    , encoder m3 v3
+                    ]
+        , decoder =
+            Json.Decode.map3
+                (\a b c -> ( a, b, c ))
+                (Json.Decode.index 0 <| decoder m1)
+                (Json.Decode.index 1 <| decoder m2)
+                (Json.Decode.index 2 <| decoder m3)
+        }
 
 
 
@@ -756,46 +806,6 @@ set =
     composite
         (\e -> Json.Encode.list e << Set.toList)
         (Json.Decode.map Set.fromList << Json.Decode.list)
-
-
-{-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
--}
-tuple : Codec a -> Codec b -> Codec ( a, b )
-tuple m1 m2 =
-    Codec
-        { encoder =
-            \( v1, v2 ) ->
-                Json.Encode.list identity
-                    [ encoder m1 v1
-                    , encoder m2 v2
-                    ]
-        , decoder =
-            Json.Decode.map2
-                (\a b -> ( a, b ))
-                (Json.Decode.index 0 <| decoder m1)
-                (Json.Decode.index 1 <| decoder m2)
-        }
-
-
-{-| `Codec` between a JSON array of length 3 and an Elm triple.
--}
-triple : Codec a -> Codec b -> Codec c -> Codec ( a, b, c )
-triple m1 m2 m3 =
-    Codec
-        { encoder =
-            \( v1, v2, v3 ) ->
-                Json.Encode.list identity
-                    [ encoder m1 v1
-                    , encoder m2 v2
-                    , encoder m3 v3
-                    ]
-        , decoder =
-            Json.Decode.map3
-                (\a b c -> ( a, b, c ))
-                (Json.Decode.index 0 <| decoder m1)
-                (Json.Decode.index 1 <| decoder m2)
-                (Json.Decode.index 2 <| decoder m3)
-        }
 
 
 {-| `Codec` for `Result` values.
