@@ -11,7 +11,7 @@ module Codec exposing
     , succeed, recursive, fail, andThen, lazy, value, constant
     )
 
-{-| Codec contains a JSON encoder and decoder.
+{-| A `Codec` contains a JSON encoder and decoder.
 
 @docs Codec, build
 
