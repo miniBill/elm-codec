@@ -831,10 +831,10 @@ map bToA aToB a =
 {-| Create codecs that depend on previous results.
 -}
 andThen : (a -> Codec b) -> (b -> a) -> Codec a -> Codec b
-andThen dec enc c =
+andThen aToB bToA a =
     Codec
-        { encoder = encoder c << enc
-        , decoder = decoder c |> Json.Decode.andThen (dec >> decoder)
+        { encoder = encoder a << bToA
+        , decoder = decoder a |> Json.Decode.andThen (aToB >> decoder)
         }
 
 
