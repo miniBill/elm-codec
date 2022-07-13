@@ -207,19 +207,19 @@ string =
 {-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
 -}
 tuple : Codec a -> Codec b -> Codec ( a, b )
-tuple m1 m2 =
+tuple a b =
     Codec
         { encoder =
-            \( v1, v2 ) ->
+            \( x1, x2 ) ->
                 Json.Encode.list identity
-                    [ encoder m1 v1
-                    , encoder m2 v2
+                    [ encoder a x1
+                    , encoder b x2
                     ]
         , decoder =
             Json.Decode.map2
-                (\a b -> ( a, b ))
-                (Json.Decode.index 0 <| decoder m1)
-                (Json.Decode.index 1 <| decoder m2)
+                Tuple.pair
+                (Json.Decode.index 0 (decoder a))
+                (Json.Decode.index 1 (decoder b))
         }
 
 
