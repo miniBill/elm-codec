@@ -2,11 +2,11 @@ module Codec exposing
     ( Codec, build
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
-    , bool, int, float, char, string
     , tuple, tuple3
     , Record, record, field, maybeField, buildRecord
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
-    , maybe, list, array, dict, set, result
+    , int, float, char, string, list, array, dict, set
+    , bool, maybe, result
     , oneOf
     , map
     , succeed, recursive, fail, andThen, lazy, value, constant
@@ -27,11 +27,6 @@ module Codec exposing
 @docs decoder, decodeString, decodeValue
 
 
-# Primitives
-
-@docs bool, int, float, char, string
-
-
 # Tuples
 
 @docs tuple, tuple3
@@ -47,9 +42,14 @@ module Codec exposing
 @docs Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
 
 
+# Opaque Custom Types
+
+@docs int, float, char, string, list, array, dict, set
+
+
 # Common Custom Types
 
-@docs maybe, list, array, dict, set, result
+@docs bool, maybe, result
 
 
 # Inconsistent structure
@@ -147,57 +147,6 @@ through ports, so that is probably the main time you would use this function.
 decodeValue : Codec a -> Json.Decode.Value -> Result Json.Decode.Error a
 decodeValue a =
     Json.Decode.decodeValue (decoder a)
-
-
-
--- PRIMITIVES
-
-
-{-| `Codec` between a JSON boolean and an Elm `Bool`
--}
-bool : Codec Bool
-bool =
-    build Json.Encode.bool Json.Decode.bool
-
-
-{-| `Codec` between a JSON number and an Elm `Int`
--}
-int : Codec Int
-int =
-    build Json.Encode.int Json.Decode.int
-
-
-{-| `Codec` between a JSON number and an Elm `Float`
--}
-float : Codec Float
-float =
-    build Json.Encode.float Json.Decode.float
-
-
-{-| `Codec` between a JSON string of length 1 and an Elm `Char`
--}
-char : Codec Char
-char =
-    build
-        (String.fromChar >> Json.Encode.string)
-        (Json.Decode.string
-            |> Json.Decode.andThen
-                (\x ->
-                    case String.uncons x of
-                        Just ( h, "" ) ->
-                            Json.Decode.succeed h
-
-                        _ ->
-                            Json.Decode.fail "Expecting character."
-                )
-        )
-
-
-{-| `Codec` between a JSON string and an Elm `String`
--}
-string : Codec String
-string =
-    build Json.Encode.string Json.Decode.string
 
 
 
@@ -748,7 +697,7 @@ buildCustom (Custom a) =
 
 
 
--- COMMON CUSTOM TYPES
+-- OPAQUE CUSTOM TYPES
 
 
 composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Json.Decode.Decoder b -> Json.Decode.Decoder a) -> Codec b -> Codec a
@@ -759,22 +708,44 @@ composite enc dec (Codec codec) =
         }
 
 
-{-| Represents an optional value.
+{-| `Codec` between a JSON number and an Elm `Int`
 -}
-maybe : Codec a -> Codec (Maybe a)
-maybe a =
-    custom
-        (\fn1 fn2 x ->
-            case x of
-                Just x1 ->
-                    fn1 x1
+int : Codec Int
+int =
+    build Json.Encode.int Json.Decode.int
 
-                Nothing ->
-                    fn2
+
+{-| `Codec` between a JSON number and an Elm `Float`
+-}
+float : Codec Float
+float =
+    build Json.Encode.float Json.Decode.float
+
+
+{-| `Codec` between a JSON string of length 1 and an Elm `Char`
+-}
+char : Codec Char
+char =
+    build
+        (String.fromChar >> Json.Encode.string)
+        (Json.Decode.string
+            |> Json.Decode.andThen
+                (\x ->
+                    case String.uncons x of
+                        Just ( h, "" ) ->
+                            Json.Decode.succeed h
+
+                        _ ->
+                            Json.Decode.fail "Expecting character."
+                )
         )
-        |> variant1 "Just" Just a
-        |> variant0 "Nothing" Nothing
-        |> buildCustom
+
+
+{-| `Codec` between a JSON string and an Elm `String`
+-}
+string : Codec String
+string =
+    build Json.Encode.string Json.Decode.string
 
 
 {-| `Codec` between a JSON array and an Elm `List`.
@@ -807,6 +778,35 @@ set =
     composite
         (\e -> Json.Encode.list e << Set.toList)
         (Json.Decode.map Set.fromList << Json.Decode.list)
+
+
+
+-- COMMON CUSTOM TYPES
+
+
+{-| `Codec` between a JSON boolean and an Elm `Bool`
+-}
+bool : Codec Bool
+bool =
+    build Json.Encode.bool Json.Decode.bool
+
+
+{-| Represents an optional value.
+-}
+maybe : Codec a -> Codec (Maybe a)
+maybe a =
+    custom
+        (\fn1 fn2 x ->
+            case x of
+                Just x1 ->
+                    fn1 x1
+
+                Nothing ->
+                    fn2
+        )
+        |> variant1 "Just" Just a
+        |> variant0 "Nothing" Nothing
+        |> buildCustom
 
 
 {-| `Codec` for `Result` values.
