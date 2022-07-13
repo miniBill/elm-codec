@@ -857,10 +857,10 @@ oneOf codecs a =
 Have a look at the Json.Decode docs for examples.
 -}
 lazy : (() -> Codec a) -> Codec a
-lazy f =
+lazy fn =
     Codec
-        { encoder = \v -> encoder (f ()) v
-        , decoder = Json.Decode.lazy (\_ -> decoder (f ()))
+        { encoder = \x -> encoder (fn ()) x
+        , decoder = Json.Decode.lazy (\_ -> decoder (fn ()))
         }
 
 
