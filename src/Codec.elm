@@ -31,7 +31,7 @@ module Codec exposing
 @docs bool, int, float, char, string
 
 
-# Object Primitives
+# Records
 
 @docs ObjectCodec, object, field, maybeField, nullableField, buildObject
 
@@ -195,7 +195,7 @@ string =
 
 
 
--- OBJECTS
+-- RECORDS
 
 
 {-| A partially built `Codec` for an object.
