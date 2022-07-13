@@ -4,7 +4,7 @@ module Codec exposing
     , decoder, decodeString, decodeValue
     , bool, int, float, char, string
     , Record, record, field, maybeField, buildRecord
-    , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
+    , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , maybe, list, array, dict, set, tuple, triple, result
     , oneOf
     , map
@@ -38,7 +38,7 @@ module Codec exposing
 
 # Custom Types
 
-@docs CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
+@docs Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
 
 
 # Data Structures
@@ -295,13 +295,13 @@ buildRecord (Record a) =
 
 
 
--- CUSTOM
+-- CUSTOM TYPES
 
 
 {-| A partially built `Codec` for a custom type.
 -}
-type CustomCodec match v
-    = CustomCodec
+type Custom match v
+    = Custom
         { match : match
         , decoder : Dict.Dict String (Json.Decode.Decoder v)
         }
@@ -336,9 +336,9 @@ You need to pass a pattern matching function, built like this:
             |> Codec.buildCustom
 
 -}
-custom : match -> CustomCodec match value
+custom : match -> Custom match value
 custom match =
-    CustomCodec
+    Custom
         { match = match
         , decoder = Dict.empty
         }
@@ -348,9 +348,9 @@ variant :
     String
     -> ((List Json.Decode.Value -> Json.Decode.Value) -> a)
     -> Json.Decode.Decoder v
-    -> CustomCodec (a -> b) v
-    -> CustomCodec b v
-variant name matchPiece decoderPiece (CustomCodec am) =
+    -> Custom (a -> b) v
+    -> Custom b v
+variant name matchPiece decoderPiece (Custom am) =
     let
         enc v =
             Json.Encode.object
@@ -358,7 +358,7 @@ variant name matchPiece decoderPiece (CustomCodec am) =
                 , ( "args", Json.Encode.list identity v )
                 ]
     in
-    CustomCodec
+    Custom
         { match = am.match <| matchPiece enc
         , decoder = Dict.insert name decoderPiece am.decoder
         }
@@ -369,8 +369,8 @@ variant name matchPiece decoderPiece (CustomCodec am) =
 variant0 :
     String
     -> v
-    -> CustomCodec (Json.Decode.Value -> a) v
-    -> CustomCodec a v
+    -> Custom (Json.Decode.Value -> a) v
+    -> Custom a v
 variant0 name ctor =
     variant name
         (\c -> c [])
@@ -383,8 +383,8 @@ variant1 :
     String
     -> (a -> v)
     -> Codec a
-    -> CustomCodec ((a -> Json.Decode.Value) -> b) v
-    -> CustomCodec b v
+    -> Custom ((a -> Json.Decode.Value) -> b) v
+    -> Custom b v
 variant1 name ctor m1 =
     variant name
         (\c v ->
@@ -404,8 +404,8 @@ variant2 :
     -> (a -> b -> v)
     -> Codec a
     -> Codec b
-    -> CustomCodec ((a -> b -> Json.Decode.Value) -> c) v
-    -> CustomCodec c v
+    -> Custom ((a -> b -> Json.Decode.Value) -> c) v
+    -> Custom c v
 variant2 name ctor m1 m2 =
     variant name
         (\c v1 v2 ->
@@ -428,8 +428,8 @@ variant3 :
     -> Codec a
     -> Codec b
     -> Codec c
-    -> CustomCodec ((a -> b -> c -> Json.Decode.Value) -> partial) v
-    -> CustomCodec partial v
+    -> Custom ((a -> b -> c -> Json.Decode.Value) -> partial) v
+    -> Custom partial v
 variant3 name ctor m1 m2 m3 =
     variant name
         (\c v1 v2 v3 ->
@@ -455,8 +455,8 @@ variant4 :
     -> Codec b
     -> Codec c
     -> Codec d
-    -> CustomCodec ((a -> b -> c -> d -> Json.Decode.Value) -> partial) v
-    -> CustomCodec partial v
+    -> Custom ((a -> b -> c -> d -> Json.Decode.Value) -> partial) v
+    -> Custom partial v
 variant4 name ctor m1 m2 m3 m4 =
     variant name
         (\c v1 v2 v3 v4 ->
@@ -485,8 +485,8 @@ variant5 :
     -> Codec c
     -> Codec d
     -> Codec e
-    -> CustomCodec ((a -> b -> c -> d -> e -> Json.Decode.Value) -> partial) v
-    -> CustomCodec partial v
+    -> Custom ((a -> b -> c -> d -> e -> Json.Decode.Value) -> partial) v
+    -> Custom partial v
 variant5 name ctor m1 m2 m3 m4 m5 =
     variant name
         (\c v1 v2 v3 v4 v5 ->
@@ -518,8 +518,8 @@ variant6 :
     -> Codec d
     -> Codec e
     -> Codec f
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> Json.Decode.Value) -> partial) v
-    -> CustomCodec partial v
+    -> Custom ((a -> b -> c -> d -> e -> f -> Json.Decode.Value) -> partial) v
+    -> Custom partial v
 variant6 name ctor m1 m2 m3 m4 m5 m6 =
     variant name
         (\c v1 v2 v3 v4 v5 v6 ->
@@ -554,8 +554,8 @@ variant7 :
     -> Codec e
     -> Codec f
     -> Codec g
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> Json.Decode.Value) -> partial) v
-    -> CustomCodec partial v
+    -> Custom ((a -> b -> c -> d -> e -> f -> g -> Json.Decode.Value) -> partial) v
+    -> Custom partial v
 variant7 name ctor m1 m2 m3 m4 m5 m6 m7 =
     variant name
         (\c v1 v2 v3 v4 v5 v6 v7 ->
@@ -593,8 +593,8 @@ variant8 :
     -> Codec f
     -> Codec g
     -> Codec h
-    -> CustomCodec ((a -> b -> c -> d -> e -> f -> g -> h -> Json.Decode.Value) -> partial) v
-    -> CustomCodec partial v
+    -> Custom ((a -> b -> c -> d -> e -> f -> g -> h -> Json.Decode.Value) -> partial) v
+    -> Custom partial v
 variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
     variant name
         (\c v1 v2 v3 v4 v5 v6 v7 v8 ->
@@ -623,8 +623,8 @@ variant8 name ctor m1 m2 m3 m4 m5 m6 m7 m8 =
 
 {-| Build a `Codec` for a fully specified custom type.
 -}
-buildCustom : CustomCodec (a -> Json.Decode.Value) a -> Codec a
-buildCustom (CustomCodec am) =
+buildCustom : Custom (a -> Json.Decode.Value) a -> Codec a
+buildCustom (Custom am) =
     Codec
         { encoder = \v -> am.match v
         , decoder =
