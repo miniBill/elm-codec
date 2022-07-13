@@ -176,13 +176,13 @@ char =
         (String.fromChar >> Json.Encode.string)
         (Json.Decode.string
             |> Json.Decode.andThen
-                (\s ->
-                    case String.uncons s of
+                (\x ->
+                    case String.uncons x of
                         Just ( h, "" ) ->
                             Json.Decode.succeed h
 
                         _ ->
-                            Json.Decode.fail "Expected a single char"
+                            Json.Decode.fail "Expecting character."
                 )
         )
 
