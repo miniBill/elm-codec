@@ -247,7 +247,7 @@ record a =
 The name is only used as the field name in the resulting JSON, and has no impact on the Elm side.
 
 -}
-field : String -> (a -> f) -> Codec f -> Record a (f -> b) -> Record a b
+field : String -> (a -> c) -> Codec c -> Record a (c -> b) -> Record a b
 field name getter codec (Record a) =
     Record
         { encoder = \x -> ( name, encoder codec <| getter x ) :: a.encoder x
