@@ -13,9 +13,6 @@ module Codec exposing
 
 {-| Codec contains a JSON encoder and decoder.
 
-
-# Definition
-
 @docs Codec, build
 
 
@@ -70,10 +67,6 @@ import Dict
 import Json.Decode
 import Json.Encode
 import Set
-
-
-
--- DEFINITION
 
 
 {-| A value that knows how to encode and decode JSON values.
