@@ -821,10 +821,10 @@ result error a =
 {-| Transform a `Codec`.
 -}
 map : (a -> b) -> (b -> a) -> Codec a -> Codec b
-map go back codec =
+map aToB bToA codec =
     Codec
-        { encoder = \v -> back v |> encoder codec
-        , decoder = Json.Decode.map go <| decoder codec
+        { encoder = \x -> bToA x |> encoder codec
+        , decoder = Json.Decode.map aToB <| decoder codec
         }
 
 
