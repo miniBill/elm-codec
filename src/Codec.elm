@@ -754,13 +754,11 @@ array a =
     build (Json.Encode.array (encoder a)) (Json.Decode.array (decoder a))
 
 
-{-| `Codec` between a JSON object and an Elm `Dict`.
+{-| `Codec` between a JSON array and an Elm `Dict`.
 -}
-dict : Codec a -> Codec (Dict.Dict String a)
-dict =
-    composite
-        (\e -> Json.Encode.object << Dict.toList << Dict.map (\_ -> e))
-        Json.Decode.dict
+dict : Codec comparable -> Codec v -> Codec (Dict.Dict comparable v)
+dict k v =
+    list (tuple k v) |> map Dict.fromList Dict.toList
 
 
 {-| `Codec` between a JSON array and an Elm `Set`.
