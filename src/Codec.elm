@@ -3,7 +3,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
     , bool, int, float, char, string
-    , tuple, triple
+    , tuple, tuple3
     , Record, record, field, maybeField, buildRecord
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , maybe, list, array, dict, set, result
@@ -34,7 +34,7 @@ module Codec exposing
 
 # Tuples
 
-@docs tuple, triple
+@docs tuple, tuple3
 
 
 # Records
@@ -223,10 +223,10 @@ tuple a b =
         }
 
 
-{-| `Codec` between a JSON array of length 3 and an Elm triple.
+{-| `Codec` between a JSON array of length 3 and an Elm tuple3.
 -}
-triple : Codec a -> Codec b -> Codec c -> Codec ( a, b, c )
-triple m1 m2 m3 =
+tuple3 : Codec a -> Codec b -> Codec c -> Codec ( a, b, c )
+tuple3 m1 m2 m3 =
     Codec
         { encoder =
             \( v1, v2, v3 ) ->
