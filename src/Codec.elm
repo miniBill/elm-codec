@@ -823,8 +823,8 @@ result error a =
 map : (a -> b) -> (b -> a) -> Codec a -> Codec b
 map go back codec =
     Codec
-        { decoder = Json.Decode.map go <| decoder codec
-        , encoder = \v -> back v |> encoder codec
+        { encoder = \v -> back v |> encoder codec
+        , decoder = Json.Decode.map go <| decoder codec
         }
 
 
@@ -833,8 +833,8 @@ map go back codec =
 andThen : (a -> Codec b) -> (b -> a) -> Codec a -> Codec b
 andThen dec enc c =
     Codec
-        { decoder = decoder c |> Json.Decode.andThen (dec >> decoder)
-        , encoder = encoder c << enc
+        { encoder = encoder c << enc
+        , decoder = decoder c |> Json.Decode.andThen (dec >> decoder)
         }
 
 
@@ -859,8 +859,8 @@ Have a look at the Json.Decode docs for examples.
 lazy : (() -> Codec a) -> Codec a
 lazy f =
     Codec
-        { decoder = Json.Decode.lazy (\_ -> decoder <| f ())
-        , encoder = \v -> encoder (f ()) v
+        { encoder = \v -> encoder (f ()) v
+        , decoder = Json.Decode.lazy (\_ -> decoder <| f ())
         }
 
 
@@ -869,8 +869,8 @@ lazy f =
 succeed : a -> Codec a
 succeed default_ =
     Codec
-        { decoder = Json.Decode.succeed default_
-        , encoder = \_ -> Json.Encode.null
+        { encoder = \_ -> Json.Encode.null
+        , decoder = Json.Decode.succeed default_
         }
 
 
@@ -881,8 +881,8 @@ case. The encoder will produce `null`.
 fail : String -> Codec a
 fail msg =
     Codec
-        { decoder = Json.Decode.fail msg
-        , encoder = always Json.Encode.null
+        { encoder = always Json.Encode.null
+        , decoder = Json.Decode.fail msg
         }
 
 
