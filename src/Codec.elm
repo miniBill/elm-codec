@@ -3,7 +3,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
     , bool, int, float, char, string
-    , Record, record, field, maybeField, nullableField, buildObject
+    , Record, record, field, maybeField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , maybe, list, array, dict, set, tuple, triple, result
     , oneOf
@@ -33,7 +33,7 @@ module Codec exposing
 
 # Records
 
-@docs Record, record, field, maybeField, nullableField, buildObject
+@docs Record, record, field, maybeField, buildObject
 
 
 # Custom Types
@@ -280,19 +280,6 @@ maybeField name getter codec (Record ocodec) =
                 |> Json.Decode.maybe
                 |> Json.Decode.map2 (\f x -> f x) ocodec.decoder
         }
-
-
-{-| Specify the name getter and `Codec` for a required field, whose value can be `null`.
-
-If the field is not present in the input then _the decoding fails_.
-If the field's value is `Nothing` then the resulting record will contain the field with a `null` value.
-
-This is a shorthand for a field having a codec built using `Codec.maybe`.
-
--}
-nullableField : String -> (a -> Maybe f) -> Codec f -> Record a (Maybe f -> b) -> Record a b
-nullableField name getter codec ocodec =
-    field name getter (maybe codec) ocodec
 
 
 {-| Create a `Codec` from a fully specified `Record`.
