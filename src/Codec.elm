@@ -47,7 +47,7 @@ module Codec exposing
 @docs Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
 
 
-# Data Structures
+# Common Custom Types
 
 @docs maybe, list, array, dict, set, result
 
@@ -748,7 +748,7 @@ buildCustom (Custom a) =
 
 
 
--- DATA STRUCTURES
+-- COMMON CUSTOM TYPES
 
 
 composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Json.Decode.Decoder b -> Json.Decode.Decoder a) -> Codec b -> Codec a
