@@ -226,21 +226,21 @@ tuple a b =
 {-| `Codec` between a JSON array of length 3 and an Elm tuple3.
 -}
 tuple3 : Codec a -> Codec b -> Codec c -> Codec ( a, b, c )
-tuple3 m1 m2 m3 =
+tuple3 a b c =
     Codec
         { encoder =
-            \( v1, v2, v3 ) ->
+            \( x1, x2, x3 ) ->
                 Json.Encode.list identity
-                    [ encoder m1 v1
-                    , encoder m2 v2
-                    , encoder m3 v3
+                    [ encoder a x1
+                    , encoder b x2
+                    , encoder c x3
                     ]
         , decoder =
             Json.Decode.map3
-                (\a b c -> ( a, b, c ))
-                (Json.Decode.index 0 <| decoder m1)
-                (Json.Decode.index 1 <| decoder m2)
-                (Json.Decode.index 2 <| decoder m3)
+                (\x1 x2 x3 -> ( x1, x2, x3 ))
+                (Json.Decode.index 0 (decoder a))
+                (Json.Decode.index 1 (decoder b))
+                (Json.Decode.index 2 (decoder c))
         }
 
 
