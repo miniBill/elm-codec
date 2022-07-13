@@ -3,9 +3,9 @@ module Codec exposing
     , decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
     , bool, int, float, char, string
-    , maybe, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, maybeField, nullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
+    , maybe, list, array, dict, set, tuple, triple, result
     , oneOf
     , map
     , succeed, recursive, fail, andThen, lazy, value, build, constant
@@ -34,11 +34,6 @@ module Codec exposing
 @docs bool, int, float, char, string
 
 
-# Data Structures
-
-@docs maybe, list, array, dict, set, tuple, triple, result
-
-
 # Object Primitives
 
 @docs ObjectCodec, object, field, maybeField, nullableField, buildObject
@@ -47,6 +42,11 @@ module Codec exposing
 # Custom Types
 
 @docs CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
+
+
+# Data Structures
+
+@docs maybe, list, array, dict, set, tuple, triple, result
 
 
 # Inconsistent structure
@@ -199,125 +199,6 @@ char =
 string : Codec String
 string =
     build Json.Encode.string Json.Decode.string
-
-
-
--- DATA STRUCTURES
-
-
-composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Json.Decode.Decoder b -> Json.Decode.Decoder a) -> Codec b -> Codec a
-composite enc dec (Codec codec) =
-    Codec
-        { encoder = enc codec.encoder
-        , decoder = dec codec.decoder
-        }
-
-
-{-| Represents an optional value.
--}
-maybe : Codec a -> Codec (Maybe a)
-maybe codec =
-    Codec
-        { decoder = Json.Decode.maybe <| decoder codec
-        , encoder =
-            \v ->
-                case v of
-                    Nothing ->
-                        Json.Encode.null
-
-                    Just x ->
-                        encoder codec x
-        }
-
-
-{-| `Codec` between a JSON array and an Elm `List`.
--}
-list : Codec a -> Codec (List a)
-list =
-    composite Json.Encode.list Json.Decode.list
-
-
-{-| `Codec` between a JSON array and an Elm `Array`.
--}
-array : Codec a -> Codec (Array.Array a)
-array =
-    composite Json.Encode.array Json.Decode.array
-
-
-{-| `Codec` between a JSON object and an Elm `Dict`.
--}
-dict : Codec a -> Codec (Dict.Dict String a)
-dict =
-    composite
-        (\e -> Json.Encode.object << Dict.toList << Dict.map (\_ -> e))
-        Json.Decode.dict
-
-
-{-| `Codec` between a JSON array and an Elm `Set`.
--}
-set : Codec comparable -> Codec (Set.Set comparable)
-set =
-    composite
-        (\e -> Json.Encode.list e << Set.toList)
-        (Json.Decode.map Set.fromList << Json.Decode.list)
-
-
-{-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
--}
-tuple : Codec a -> Codec b -> Codec ( a, b )
-tuple m1 m2 =
-    Codec
-        { encoder =
-            \( v1, v2 ) ->
-                Json.Encode.list identity
-                    [ encoder m1 v1
-                    , encoder m2 v2
-                    ]
-        , decoder =
-            Json.Decode.map2
-                (\a b -> ( a, b ))
-                (Json.Decode.index 0 <| decoder m1)
-                (Json.Decode.index 1 <| decoder m2)
-        }
-
-
-{-| `Codec` between a JSON array of length 3 and an Elm triple.
--}
-triple : Codec a -> Codec b -> Codec c -> Codec ( a, b, c )
-triple m1 m2 m3 =
-    Codec
-        { encoder =
-            \( v1, v2, v3 ) ->
-                Json.Encode.list identity
-                    [ encoder m1 v1
-                    , encoder m2 v2
-                    , encoder m3 v3
-                    ]
-        , decoder =
-            Json.Decode.map3
-                (\a b c -> ( a, b, c ))
-                (Json.Decode.index 0 <| decoder m1)
-                (Json.Decode.index 1 <| decoder m2)
-                (Json.Decode.index 2 <| decoder m3)
-        }
-
-
-{-| `Codec` for `Result` values.
--}
-result : Codec error -> Codec value -> Codec (Result error value)
-result errorCodec valueCodec =
-    custom
-        (\ferr fok v ->
-            case v of
-                Err err ->
-                    ferr err
-
-                Ok ok ->
-                    fok ok
-        )
-        |> variant1 "Err" Err errorCodec
-        |> variant1 "Ok" Ok valueCodec
-        |> buildCustom
 
 
 
@@ -776,6 +657,125 @@ buildCustom (CustomCodec am) =
                                 Json.Decode.field "args" dec
                     )
         }
+
+
+
+-- DATA STRUCTURES
+
+
+composite : ((b -> Json.Decode.Value) -> (a -> Json.Decode.Value)) -> (Json.Decode.Decoder b -> Json.Decode.Decoder a) -> Codec b -> Codec a
+composite enc dec (Codec codec) =
+    Codec
+        { encoder = enc codec.encoder
+        , decoder = dec codec.decoder
+        }
+
+
+{-| Represents an optional value.
+-}
+maybe : Codec a -> Codec (Maybe a)
+maybe codec =
+    Codec
+        { decoder = Json.Decode.maybe <| decoder codec
+        , encoder =
+            \v ->
+                case v of
+                    Nothing ->
+                        Json.Encode.null
+
+                    Just x ->
+                        encoder codec x
+        }
+
+
+{-| `Codec` between a JSON array and an Elm `List`.
+-}
+list : Codec a -> Codec (List a)
+list =
+    composite Json.Encode.list Json.Decode.list
+
+
+{-| `Codec` between a JSON array and an Elm `Array`.
+-}
+array : Codec a -> Codec (Array.Array a)
+array =
+    composite Json.Encode.array Json.Decode.array
+
+
+{-| `Codec` between a JSON object and an Elm `Dict`.
+-}
+dict : Codec a -> Codec (Dict.Dict String a)
+dict =
+    composite
+        (\e -> Json.Encode.object << Dict.toList << Dict.map (\_ -> e))
+        Json.Decode.dict
+
+
+{-| `Codec` between a JSON array and an Elm `Set`.
+-}
+set : Codec comparable -> Codec (Set.Set comparable)
+set =
+    composite
+        (\e -> Json.Encode.list e << Set.toList)
+        (Json.Decode.map Set.fromList << Json.Decode.list)
+
+
+{-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
+-}
+tuple : Codec a -> Codec b -> Codec ( a, b )
+tuple m1 m2 =
+    Codec
+        { encoder =
+            \( v1, v2 ) ->
+                Json.Encode.list identity
+                    [ encoder m1 v1
+                    , encoder m2 v2
+                    ]
+        , decoder =
+            Json.Decode.map2
+                (\a b -> ( a, b ))
+                (Json.Decode.index 0 <| decoder m1)
+                (Json.Decode.index 1 <| decoder m2)
+        }
+
+
+{-| `Codec` between a JSON array of length 3 and an Elm triple.
+-}
+triple : Codec a -> Codec b -> Codec c -> Codec ( a, b, c )
+triple m1 m2 m3 =
+    Codec
+        { encoder =
+            \( v1, v2, v3 ) ->
+                Json.Encode.list identity
+                    [ encoder m1 v1
+                    , encoder m2 v2
+                    , encoder m3 v3
+                    ]
+        , decoder =
+            Json.Decode.map3
+                (\a b c -> ( a, b, c ))
+                (Json.Decode.index 0 <| decoder m1)
+                (Json.Decode.index 1 <| decoder m2)
+                (Json.Decode.index 2 <| decoder m3)
+        }
+
+
+{-| `Codec` for `Result` values.
+-}
+result : Codec error -> Codec value -> Codec (Result error value)
+result errorCodec valueCodec =
+    custom
+        (\ferr fok v ->
+            case v of
+                Err err ->
+                    ferr err
+
+                Ok ok ->
+                    fok ok
+        )
+        |> variant1 "Err" Err errorCodec
+        |> variant1 "Ok" Ok valueCodec
+        |> buildCustom
 
 
 
