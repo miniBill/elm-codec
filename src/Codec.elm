@@ -248,10 +248,10 @@ The name is only used as the field name in the resulting JSON, and has no impact
 
 -}
 field : String -> (a -> f) -> Codec f -> Record a (f -> b) -> Record a b
-field name getter codec (Record ocodec) =
+field name getter codec (Record a) =
     Record
-        { encoder = \v -> ( name, encoder codec <| getter v ) :: ocodec.encoder v
-        , decoder = Json.Decode.map2 (\f x -> f x) ocodec.decoder (Json.Decode.field name (decoder codec))
+        { encoder = \v -> ( name, encoder codec <| getter v ) :: a.encoder v
+        , decoder = Json.Decode.map2 (\f x -> f x) a.decoder (Json.Decode.field name (decoder codec))
         }
 
 
