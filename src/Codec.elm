@@ -65,11 +65,11 @@ module Codec exposing
 
 -}
 
-import Array exposing (Array)
-import Dict exposing (Dict)
+import Array
+import Dict
 import Json.Decode as JD
 import Json.Encode as JE
-import Set exposing (Set)
+import Set
 
 
 
@@ -260,14 +260,14 @@ list =
 
 {-| `Codec` between a JSON array and an Elm `Array`.
 -}
-array : Codec a -> Codec (Array a)
+array : Codec a -> Codec (Array.Array a)
 array =
     composite JE.array JD.array
 
 
 {-| `Codec` between a JSON object and an Elm `Dict`.
 -}
-dict : Codec a -> Codec (Dict String a)
+dict : Codec a -> Codec (Dict.Dict String a)
 dict =
     composite
         (\e -> JE.object << Dict.toList << Dict.map (\_ -> e))
@@ -276,7 +276,7 @@ dict =
 
 {-| `Codec` between a JSON array and an Elm `Set`.
 -}
-set : Codec comparable -> Codec (Set comparable)
+set : Codec comparable -> Codec (Set.Set comparable)
 set =
     composite
         (\e -> JE.list e << Set.toList)
@@ -461,7 +461,7 @@ buildObject (ObjectCodec om) =
 type CustomCodec match v
     = CustomCodec
         { match : match
-        , decoder : Dict String (Decoder v)
+        , decoder : Dict.Dict String (Decoder v)
         }
 
 
