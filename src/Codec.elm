@@ -762,18 +762,19 @@ composite enc dec (Codec codec) =
 {-| Represents an optional value.
 -}
 maybe : Codec a -> Codec (Maybe a)
-maybe codec =
-    Codec
-        { decoder = Json.Decode.maybe <| decoder codec
-        , encoder =
-            \v ->
-                case v of
-                    Nothing ->
-                        Json.Encode.null
+maybe a =
+    custom
+        (\fn1 fn2 x ->
+            case x of
+                Just x1 ->
+                    fn1 x1
 
-                    Just x ->
-                        encoder codec x
-        }
+                Nothing ->
+                    fn2
+        )
+        |> variant1 "Just" Just a
+        |> variant0 "Nothing" Nothing
+        |> buildCustom
 
 
 {-| `Codec` between a JSON array and an Elm `List`.
