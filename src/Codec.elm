@@ -92,8 +92,8 @@ type Codec a
 {-| Extracts the `Decoder` contained inside the `Codec`.
 -}
 decoder : Codec a -> Json.Decode.Decoder a
-decoder (Codec m) =
-    m.decoder
+decoder (Codec a) =
+    a.decoder
 
 
 {-| Parse the given string into a JSON value and then run the `Codec` on it.
@@ -101,16 +101,16 @@ This will fail if the string is not well-formed JSON or if the `Codec`
 fails for some reason.
 -}
 decodeString : Codec a -> String -> Result Json.Decode.Error a
-decodeString codec =
-    Json.Decode.decodeString (decoder codec)
+decodeString a =
+    Json.Decode.decodeString (decoder a)
 
 
 {-| Run a `Codec` to decode some JSON `Value`. You can send these JSON values
 through ports, so that is probably the main time you would use this function.
 -}
 decodeValue : Codec a -> Json.Decode.Value -> Result Json.Decode.Error a
-decodeValue codec =
-    Json.Decode.decodeValue (decoder codec)
+decodeValue a =
+    Json.Decode.decodeValue (decoder a)
 
 
 
@@ -120,23 +120,23 @@ decodeValue codec =
 {-| Extracts the encoding function contained inside the `Codec`.
 -}
 encoder : Codec a -> a -> Json.Decode.Value
-encoder (Codec m) =
-    m.encoder
+encoder (Codec a) =
+    a.encoder
 
 
 {-| Convert a value into a prettified JSON string. The first argument specifies
 the amount of indentation in the result string.
 -}
 encodeToString : Int -> Codec a -> a -> String
-encodeToString indentation codec =
-    encoder codec >> Json.Encode.encode indentation
+encodeToString indentation a =
+    encoder a >> Json.Encode.encode indentation
 
 
 {-| Convert a value into a Javascript `Value`.
 -}
 encodeToValue : Codec a -> a -> Json.Decode.Value
-encodeToValue codec =
-    encoder codec
+encodeToValue a =
+    encoder a
 
 
 
@@ -147,10 +147,10 @@ encodeToValue codec =
 Useful if you have pre-existing `Decoder`s you need to use.
 -}
 build : (a -> Json.Decode.Value) -> Json.Decode.Decoder a -> Codec a
-build encoder_ decoder_ =
+build a b =
     Codec
-        { encoder = encoder_
-        , decoder = decoder_
+        { encoder = a
+        , decoder = b
         }
 
 
