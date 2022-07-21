@@ -4,6 +4,7 @@ import Codec exposing (Codec)
 import Dict
 import Expect
 import Fuzz exposing (Fuzzer)
+import Json.Decode as JD
 import Set
 import Test exposing (Test, describe, fuzz, test)
 
@@ -175,6 +176,67 @@ objectTests =
                 { f = Nothing }
                     |> Codec.encodeToString 0 maybeCodec
                     |> Expect.equal "{}"
+        ]
+    , describe "optionalField vs optionalFieldWithDefault" <|
+        let
+            optionalCodec =
+                Codec.object
+                    (\f -> { f = f })
+                    |> Codec.optionalField "f" .f Codec.int
+                    |> Codec.buildObject
+
+            optionalWithDefaultCodec =
+                Codec.object
+                    (\f -> { f = f })
+                    |> Codec.optionalFieldWithDefault "f" .f Codec.int 42
+                    |> Codec.buildObject
+        in
+        [ test "an optionalField fallbacks to Nothing when field is missing" <|
+            \_ ->
+                "{}"
+                    |> Codec.decodeString optionalCodec
+                    |> Expect.equal (Ok { f = Nothing })
+        , test "an optionalField decodes to Nothing when JSON value is null" <|
+            \_ ->
+                """{ "f": null }"""
+                    |> Codec.decodeString optionalCodec
+                    |> Expect.equal (Ok { f = Nothing })
+        , test "an optionalField validates provided data" <|
+            \_ ->
+                """{ "f": "invalid" }"""
+                    |> Codec.decodeString optionalCodec
+                    |> Result.mapError JD.errorToString
+                    |> (\res ->
+                            case res of
+                                Ok _ ->
+                                    Expect.fail "Shouldn't have succeeded"
+
+                                Err msg ->
+                                    Expect.true "Expected error message found" (String.contains "Expecting an INT" msg)
+                       )
+        , test "an optionalFieldWithDefault applies a default value when field is missing" <|
+            \_ ->
+                "{}"
+                    |> Codec.decodeString optionalWithDefaultCodec
+                    |> Expect.equal (Ok { f = 42 })
+        , test "an optionalFieldWithDefault applies a default value when field value is null" <|
+            \_ ->
+                """{ "f": null }"""
+                    |> Codec.decodeString optionalWithDefaultCodec
+                    |> Expect.equal (Ok { f = 42 })
+        , test "an optionalFieldWithDefault validates provided data" <|
+            \_ ->
+                """{ "f": "invalid" }"""
+                    |> Codec.decodeString optionalWithDefaultCodec
+                    |> Result.mapError JD.errorToString
+                    |> (\res ->
+                            case res of
+                                Ok _ ->
+                                    Expect.fail "Shouldn't have succeeded"
+
+                                Err msg ->
+                                    Expect.true "Expected error message found" (String.contains "Expecting an INT" msg)
+                       )
         ]
     ]
 

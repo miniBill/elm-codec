@@ -4,7 +4,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
     , maybe, list, array, dict, set, tuple, triple, result
-    , ObjectCodec, object, field, maybeField, nullableField, buildObject
+    , ObjectCodec, object, field, maybeField, nullableField, optionalField, optionalFieldWithDefault, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
@@ -41,7 +41,7 @@ module Codec exposing
 
 # Object Primitives
 
-@docs ObjectCodec, object, field, maybeField, nullableField, buildObject
+@docs ObjectCodec, object, field, maybeField, nullableField, optionalField, optionalFieldWithDefault, buildObject
 
 
 # Custom Types
@@ -440,6 +440,54 @@ This is a shorthand for a field having a codec built using `Codec.maybe`.
 nullableField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
 nullableField name getter codec ocodec =
     field name getter (maybe codec) ocodec
+
+
+{-| Basically a `maybeField` where data is validated when provided and a default value to use when not.
+-}
+optionalField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
+optionalField name getter codec (ObjectCodec ocodec) =
+    ObjectCodec
+        { encoder =
+            \v ->
+                case getter v of
+                    Just present ->
+                        ( name, encoder codec present ) :: ocodec.encoder v
+
+                    Nothing ->
+                        ocodec.encoder v
+        , decoder =
+            validateNullableField name codec
+                |> JD.map2 (\f x -> f x) ocodec.decoder
+        }
+
+
+{-| Basically an `optionalField` where you can provide a default value in case data is missing.
+-}
+optionalFieldWithDefault : String -> (a -> f) -> Codec f -> f -> ObjectCodec a (f -> b) -> ObjectCodec a b
+optionalFieldWithDefault name getter codec default (ObjectCodec ocodec) =
+    ObjectCodec
+        { encoder = \v -> ( name, encoder codec <| getter v ) :: ocodec.encoder v
+        , decoder =
+            validateNullableField name codec
+                |> JD.andThen (Maybe.withDefault default >> JD.succeed)
+                |> JD.map2 (\f x -> f x) ocodec.decoder
+        }
+
+
+validateNullableField : String -> Codec f -> Decoder (Maybe f)
+validateNullableField name codec =
+    JD.value
+        |> JD.andThen
+            (\json ->
+                case JD.decodeValue (JD.field name JD.value) json of
+                    Ok _ ->
+                        -- The field is present, so run the decoder on it.
+                        JD.field name (JD.nullable (decoder codec))
+
+                    Err _ ->
+                        -- The field was missing, which is fine!
+                        JD.succeed Nothing
+            )
 
 
 {-| Create a `Codec` from a fully specified `ObjectCodec`.
