@@ -256,27 +256,8 @@ maybe codec =
 optional : Codec a -> Codec (Maybe a)
 optional codec =
     Codec
-        { decoder =
-            JD.value
-                |> JD.andThen
-                    (\json ->
-                        case JD.decodeValue JD.value json of
-                            Ok _ ->
-                                -- The field is present, so run the decoder on it.
-                                JD.nullable (decoder codec)
-
-                            Err _ ->
-                                -- The field was missing, which is fine!
-                                JD.succeed Nothing
-                    )
-        , encoder =
-            \v ->
-                case v of
-                    Nothing ->
-                        JE.null
-
-                    Just x ->
-                        encoder codec x
+        { decoder = JD.nullable (decoder codec)
+        , encoder = encoder (maybe codec)
         }
 
 
