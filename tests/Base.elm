@@ -178,21 +178,21 @@ objectTests =
                     |> Codec.encodeToString 0 maybeCodec
                     |> Expect.equal "{}"
         ]
-    , describe "optionalField vs optionalFieldWithDefault" <|
+    , describe "optionalField" <|
         let
             optionalCodec =
                 Codec.object
                     (\f -> { f = f })
                     |> Codec.optionalField "f" .f Codec.int
                     |> Codec.buildObject
-
-            optionalWithDefaultCodec =
-                Codec.object
-                    (\f -> { f = f })
-                    |> Codec.optionalFieldWithDefault "f" .f Codec.int 42
-                    |> Codec.buildObject
         in
-        [ test "an optionalField fallbacks to Nothing when field is missing" <|
+        [ optionalCodec
+            |> roundtrips
+                (Fuzz.map
+                    (\maybeInt -> { f = maybeInt })
+                    (Fuzz.maybe Fuzz.int)
+                )
+        , test "an optionalField fallbacks to Nothing when field is missing" <|
             \_ ->
                 "{}"
                     |> Codec.decodeString optionalCodec
@@ -215,20 +215,31 @@ objectTests =
                                 Err msg ->
                                     Expect.true "Expected error message found" (String.contains "Expecting an INT" msg)
                        )
+        ]
+    , describe "optionalFieldWithDefault" <|
+        let
+            optionalWithDefaultCodec default =
+                Codec.object
+                    (\f -> { f = f })
+                    |> Codec.optionalFieldWithDefault "f" .f Codec.int default
+                    |> Codec.buildObject
+        in
+        [ optionalWithDefaultCodec 0
+            |> roundtrips (Fuzz.map (\int -> { f = int }) Fuzz.int)
         , test "an optionalFieldWithDefault applies a default value when field is missing" <|
             \_ ->
                 "{}"
-                    |> Codec.decodeString optionalWithDefaultCodec
+                    |> Codec.decodeString (optionalWithDefaultCodec 42)
                     |> Expect.equal (Ok { f = 42 })
         , test "an optionalFieldWithDefault applies a default value when field value is null" <|
             \_ ->
                 """{ "f": null }"""
-                    |> Codec.decodeString optionalWithDefaultCodec
+                    |> Codec.decodeString (optionalWithDefaultCodec 42)
                     |> Expect.equal (Ok { f = 42 })
         , test "an optionalFieldWithDefault validates provided data" <|
             \_ ->
                 """{ "f": "invalid" }"""
-                    |> Codec.decodeString optionalWithDefaultCodec
+                    |> Codec.decodeString (optionalWithDefaultCodec 42)
                     |> Result.mapError JD.errorToString
                     |> (\res ->
                             case res of
@@ -349,7 +360,9 @@ optionalTests =
         testCodec =
             Codec.optional Codec.int
     in
-    [ test "should accept a provided value" <|
+    [ testCodec
+        |> roundtrips (Fuzz.maybe Fuzz.int)
+    , test "should accept a provided value" <|
         \_ ->
             "42"
                 |> Codec.decodeString testCodec
