@@ -456,7 +456,7 @@ optionalField name getter codec (ObjectCodec ocodec) =
                     Nothing ->
                         ocodec.encoder v
         , decoder =
-            validateNullableField name codec
+            validateOptionalField name codec
                 |> JD.map2 (\f x -> f x) ocodec.decoder
         }
 
@@ -468,14 +468,14 @@ optionalFieldWithDefault name getter codec default (ObjectCodec ocodec) =
     ObjectCodec
         { encoder = \v -> ( name, encoder codec <| getter v ) :: ocodec.encoder v
         , decoder =
-            validateNullableField name codec
+            validateOptionalField name codec
                 |> JD.andThen (Maybe.withDefault default >> JD.succeed)
                 |> JD.map2 (\f x -> f x) ocodec.decoder
         }
 
 
-validateNullableField : String -> Codec f -> Decoder (Maybe f)
-validateNullableField name codec =
+validateOptionalField : String -> Codec f -> Decoder (Maybe f)
+validateOptionalField name codec =
     JD.value
         |> JD.andThen
             (\json ->
