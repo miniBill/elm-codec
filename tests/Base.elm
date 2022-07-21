@@ -18,6 +18,7 @@ suite =
         , describe "Custom" customTests
         , describe "bimap" bimapTests
         , describe "maybe" maybeTests
+        , describe "optional" optionalTests
         , describe "succeed"
             [ test "roundtrips"
                 (\_ ->
@@ -339,6 +340,48 @@ maybeTests =
                   Codec.maybe Codec.int
           ]
     -}
+    ]
+
+
+optionalTests : List Test
+optionalTests =
+    let
+        testCodec =
+            Codec.optional Codec.int
+    in
+    [ test "should accept a provided value" <|
+        \_ ->
+            "42"
+                |> Codec.decodeString testCodec
+                |> Expect.equal (Ok (Just 42))
+    , test "should resolve to Nothing when null is provided" <|
+        \_ ->
+            "null"
+                |> Codec.decodeString testCodec
+                |> Expect.equal (Ok Nothing)
+    , test "should fail when provided value is invalid" <|
+        \_ ->
+            "[]"
+                |> Codec.decodeString testCodec
+                |> Result.mapError JD.errorToString
+                |> (\res ->
+                        case res of
+                            Ok _ ->
+                                Expect.fail "Shouldn't have succeeded"
+
+                            Err msg ->
+                                Expect.true "Expected error message found" (String.contains "Expecting an INT" msg)
+                   )
+    , test "should encode available data" <|
+        \_ ->
+            Just 1
+                |> Codec.encodeToString 0 testCodec
+                |> Expect.equal "1"
+    , test "should encode missing data" <|
+        \_ ->
+            Nothing
+                |> Codec.encodeToString 0 testCodec
+                |> Expect.equal "null"
     ]
 
 

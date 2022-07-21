@@ -3,7 +3,7 @@ module Codec exposing
     , Decoder, decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
-    , maybe, list, array, dict, set, tuple, triple, result
+    , maybe, optional, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, maybeField, nullableField, optionalField, optionalFieldWithDefault, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
@@ -36,7 +36,7 @@ module Codec exposing
 
 # Data Structures
 
-@docs maybe, list, array, dict, set, tuple, triple, result
+@docs maybe, optional, list, array, dict, set, tuple, triple, result
 
 
 # Object Primitives
@@ -240,6 +240,35 @@ maybe : Codec a -> Codec (Maybe a)
 maybe codec =
     Codec
         { decoder = JD.maybe <| decoder codec
+        , encoder =
+            \v ->
+                case v of
+                    Nothing ->
+                        JE.null
+
+                    Just x ->
+                        encoder codec x
+        }
+
+
+{-| Like `maybe`, represents an optional value but ensures validating the data when it exists.
+-}
+optional : Codec a -> Codec (Maybe a)
+optional codec =
+    Codec
+        { decoder =
+            JD.value
+                |> JD.andThen
+                    (\json ->
+                        case JD.decodeValue JD.value json of
+                            Ok _ ->
+                                -- The field is present, so run the decoder on it.
+                                JD.nullable (decoder codec)
+
+                            Err _ ->
+                                -- The field was missing, which is fine!
+                                JD.succeed Nothing
+                    )
         , encoder =
             \v ->
                 case v of
