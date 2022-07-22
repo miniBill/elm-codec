@@ -295,7 +295,8 @@ buildRecord (Record a) =
 type Custom x a
     = Custom
         { encoder : x
-        , decoder : Dict.Dict String (Json.Decode.Decoder a)
+        , decoder : Dict.Dict Int (Json.Decode.Decoder a)
+        , index : Int
         }
 
 
@@ -333,22 +334,22 @@ custom a =
     Custom
         { encoder = a
         , decoder = Dict.empty
+        , index = 0
         }
 
 
 {-| Define a variant with 0 parameters for a custom type.
 -}
 variant0 :
-    String
-    -> a
+    a
     -> Custom (Json.Decode.Value -> x) a
     -> Custom x a
-variant0 name fn (Custom a) =
+variant0 fn (Custom a) =
     let
         encoder_ : Json.Encode.Value
         encoder_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 ]
 
         decoder_ : Json.Decode.Decoder a
@@ -357,24 +358,24 @@ variant0 name fn (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 1 parameters for a custom type.
 -}
 variant1 :
-    String
-    -> (a -> value)
+    (a -> value)
     -> Codec a
     -> Custom ((a -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant1 name fn codecA (Custom a) =
+variant1 fn codecA (Custom a) =
     let
         encoder_ : a -> Json.Encode.Value
         encoder_ a_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 ]
 
@@ -385,25 +386,25 @@ variant1 name fn codecA (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 2 parameters for a custom type.
 -}
 variant2 :
-    String
-    -> (a -> b -> value)
+    (a -> b -> value)
     -> Codec a
     -> Codec b
     -> Custom ((a -> b -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant2 name fn codecA codecB (Custom a) =
+variant2 fn codecA codecB (Custom a) =
     let
         encoder_ : a -> b -> Json.Encode.Value
         encoder_ a_ b_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 , encoder codecB b_
                 ]
@@ -416,26 +417,26 @@ variant2 name fn codecA codecB (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 3 parameters for a custom type.
 -}
 variant3 :
-    String
-    -> (a -> b -> c -> value)
+    (a -> b -> c -> value)
     -> Codec a
     -> Codec b
     -> Codec c
     -> Custom ((a -> b -> c -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant3 name fn codecA codecB codecC (Custom a) =
+variant3 fn codecA codecB codecC (Custom a) =
     let
         encoder_ : a -> b -> c -> Json.Encode.Value
         encoder_ a_ b_ c_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 , encoder codecB b_
                 , encoder codecC c_
@@ -450,27 +451,27 @@ variant3 name fn codecA codecB codecC (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 4 parameters for a custom type.
 -}
 variant4 :
-    String
-    -> (a -> b -> c -> d -> value)
+    (a -> b -> c -> d -> value)
     -> Codec a
     -> Codec b
     -> Codec c
     -> Codec d
     -> Custom ((a -> b -> c -> d -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant4 name fn codecA codecB codecC codecD (Custom a) =
+variant4 fn codecA codecB codecC codecD (Custom a) =
     let
         encoder_ : a -> b -> c -> d -> Json.Encode.Value
         encoder_ a_ b_ c_ d_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 , encoder codecB b_
                 , encoder codecC c_
@@ -487,15 +488,15 @@ variant4 name fn codecA codecB codecC codecD (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 5 parameters for a custom type.
 -}
 variant5 :
-    String
-    -> (a -> b -> c -> d -> e -> value)
+    (a -> b -> c -> d -> e -> value)
     -> Codec a
     -> Codec b
     -> Codec c
@@ -503,12 +504,12 @@ variant5 :
     -> Codec e
     -> Custom ((a -> b -> c -> d -> e -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant5 name fn codecA codecB codecC codecD codecE (Custom a) =
+variant5 fn codecA codecB codecC codecD codecE (Custom a) =
     let
         encoder_ : a -> b -> c -> d -> e -> Json.Encode.Value
         encoder_ a_ b_ c_ d_ e_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 , encoder codecB b_
                 , encoder codecC c_
@@ -527,15 +528,15 @@ variant5 name fn codecA codecB codecC codecD codecE (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 6 parameters for a custom type.
 -}
 variant6 :
-    String
-    -> (a -> b -> c -> d -> e -> f -> value)
+    (a -> b -> c -> d -> e -> f -> value)
     -> Codec a
     -> Codec b
     -> Codec c
@@ -544,12 +545,12 @@ variant6 :
     -> Codec f
     -> Custom ((a -> b -> c -> d -> e -> f -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant6 name fn codecA codecB codecC codecD codecE codecF (Custom a) =
+variant6 fn codecA codecB codecC codecD codecE codecF (Custom a) =
     let
         encoder_ : a -> b -> c -> d -> e -> f -> Json.Encode.Value
         encoder_ a_ b_ c_ d_ e_ f_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 , encoder codecB b_
                 , encoder codecC c_
@@ -570,15 +571,15 @@ variant6 name fn codecA codecB codecC codecD codecE codecF (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 7 parameters for a custom type.
 -}
 variant7 :
-    String
-    -> (a -> b -> c -> d -> e -> f -> g -> value)
+    (a -> b -> c -> d -> e -> f -> g -> value)
     -> Codec a
     -> Codec b
     -> Codec c
@@ -588,12 +589,12 @@ variant7 :
     -> Codec g
     -> Custom ((a -> b -> c -> d -> e -> f -> g -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant7 name fn codecA codecB codecC codecD codecE codecF codecG (Custom a) =
+variant7 fn codecA codecB codecC codecD codecE codecF codecG (Custom a) =
     let
         encoder_ : a -> b -> c -> d -> e -> f -> g -> Json.Encode.Value
         encoder_ a_ b_ c_ d_ e_ f_ g_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 , encoder codecB b_
                 , encoder codecC c_
@@ -616,15 +617,15 @@ variant7 name fn codecA codecB codecC codecD codecE codecF codecG (Custom a) =
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
 {-| Define a variant with 8 parameters for a custom type.
 -}
 variant8 :
-    String
-    -> (a -> b -> c -> d -> e -> f -> g -> h -> value)
+    (a -> b -> c -> d -> e -> f -> g -> h -> value)
     -> Codec a
     -> Codec b
     -> Codec c
@@ -635,12 +636,12 @@ variant8 :
     -> Codec h
     -> Custom ((a -> b -> c -> d -> e -> f -> g -> h -> Json.Decode.Value) -> x) value
     -> Custom x value
-variant8 name fn codecA codecB codecC codecD codecE codecF codecG codecH (Custom a) =
+variant8 fn codecA codecB codecC codecD codecE codecF codecG codecH (Custom a) =
     let
         encoder_ : a -> b -> c -> d -> e -> f -> g -> h -> Json.Encode.Value
         encoder_ a_ b_ c_ d_ e_ f_ g_ h_ =
             Json.Encode.list identity
-                [ Json.Encode.string name
+                [ Json.Encode.int a.index
                 , encoder codecA a_
                 , encoder codecB b_
                 , encoder codecC c_
@@ -665,7 +666,8 @@ variant8 name fn codecA codecB codecC codecD codecE codecF codecG codecH (Custom
     in
     Custom
         { encoder = a.encoder encoder_
-        , decoder = Dict.insert name decoder_ a.decoder
+        , decoder = Dict.insert a.index decoder_ a.decoder
+        , index = a.index + 1
         }
 
 
@@ -676,12 +678,12 @@ buildCustom (Custom a) =
     Codec
         { encoder = \x -> a.encoder x
         , decoder =
-            Json.Decode.index 0 Json.Decode.string
+            Json.Decode.index 0 Json.Decode.int
                 |> Json.Decode.andThen
                     (\x ->
                         case Dict.get x a.decoder of
                             Nothing ->
-                                Json.Decode.fail ("Unknown variant \"" ++ x ++ "\".")
+                                Json.Decode.fail ("Unknown variant " ++ String.fromInt x ++ ".")
 
                             Just x2 ->
                                 x2
@@ -778,8 +780,8 @@ bool =
                 False ->
                     fn2
         )
-        |> variant0 "True" True
-        |> variant0 "False" False
+        |> variant0 True
+        |> variant0 False
         |> buildCustom
 
 
@@ -796,8 +798,8 @@ maybe a =
                 Nothing ->
                     fn2
         )
-        |> variant1 "Just" Just a
-        |> variant0 "Nothing" Nothing
+        |> variant1 Just a
+        |> variant0 Nothing
         |> buildCustom
 
 
@@ -814,8 +816,8 @@ result error a =
                 Err x1 ->
                     fn2 x1
         )
-        |> variant1 "Ok" Ok a
-        |> variant1 "Err" Err error
+        |> variant1 Ok a
+        |> variant1 Err error
         |> buildCustom
 
 

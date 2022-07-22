@@ -95,11 +95,11 @@ recordsTest =
 customTypesTest : Test.Test
 customTypesTest =
     Test.describe "Custom types."
-        [ Test.test "encoder test"
+        [ Test.test "equals snapshot"
             (\_ ->
                 Expect.equal
-                    "[\"SomeVariant\",1]"
-                    (Codec.encodeToString 0 (someTypeCodec Codec.int) (SomeVariant 1))
+                    "[0,1]"
+                    (SomeVariant 1 |> Codec.encodeToString 0 (someTypeCodec Codec.int))
             )
         , Test.describe "with 1 variant, 0 args"
             [ roundTripTest
@@ -110,7 +110,7 @@ customTypesTest =
                             () ->
                                 fn
                     )
-                    |> Codec.variant0 "()" ()
+                    |> Codec.variant0 ()
                     |> Codec.buildCustom
                 )
             ]
@@ -200,7 +200,7 @@ someTypeCodec a =
                 SomeVariant x1 ->
                     fn x1
         )
-        |> Codec.variant1 "SomeVariant" SomeVariant a
+        |> Codec.variant1 SomeVariant a
         |> Codec.buildCustom
 
 
