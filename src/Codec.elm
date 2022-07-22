@@ -189,8 +189,9 @@ tuple3 a b c =
 -}
 type Record a b
     = Record
-        { encoder : a -> List ( String, Json.Decode.Value )
+        { encoder : a -> List Json.Decode.Value
         , decoder : Json.Decode.Decoder b
+        , index : Int
         }
 
 
@@ -226,6 +227,7 @@ record a =
     Record
         { encoder = \_ -> []
         , decoder = Json.Decode.succeed a
+        , index = 0
         }
 
 
@@ -234,11 +236,12 @@ record a =
 The name is only used as the field name in the resulting JSON, and has no impact on the Elm side.
 
 -}
-field : String -> (a -> c) -> Codec c -> Record a (c -> b) -> Record a b
-field name getter codec (Record a) =
+field : (a -> c) -> Codec c -> Record a (c -> b) -> Record a b
+field getter codec (Record a) =
     Record
-        { encoder = \x -> ( name, encoder codec (getter x) ) :: a.encoder x
-        , decoder = Json.Decode.map2 (\f x -> f x) a.decoder (Json.Decode.field name (decoder codec))
+        { encoder = \x -> encoder codec (getter x) :: a.encoder x
+        , decoder = Json.Decode.map2 (\f x -> f x) a.decoder (Json.Decode.index a.index (decoder codec))
+        , index = a.index + 1
         }
 
 
@@ -250,33 +253,26 @@ If the field is not present in the input then it gets decoded to `Nothing`.
 If the optional field's value is `Nothing` then the resulting record will not contain that field.
 
 -}
-maybeField : String -> (a -> Maybe c) -> Codec c -> Record a (Maybe c -> b) -> Record a b
-maybeField name getter codec (Record a) =
+maybeField : (a -> c) -> Codec c -> (() -> c) -> Record a (c -> b) -> Record a b
+maybeField getter codec default (Record a) =
     Record
-        { encoder =
-            \x ->
-                case getter x of
-                    Just x2 ->
-                        ( name, encoder codec x2 ) :: a.encoder x
-
-                    Nothing ->
-                        a.encoder x
+        { encoder = \x -> encoder codec (getter x) :: a.encoder x
         , decoder =
             Json.Decode.oneOf
-                [ Json.Decode.field name Json.Decode.value |> Json.Decode.map Just
+                [ Json.Decode.index a.index Json.Decode.value |> Json.Decode.map Just
                 , Json.Decode.succeed Nothing
                 ]
                 |> Json.Decode.andThen
                     (\x ->
                         case x of
                             Just _ ->
-                                Json.Decode.field name (decoder codec)
-                                    |> Json.Decode.map Just
+                                Json.Decode.index a.index (decoder codec)
 
                             Nothing ->
-                                Json.Decode.succeed Nothing
+                                Json.Decode.succeed (default ())
                     )
                 |> Json.Decode.map2 (\f x -> f x) a.decoder
+        , index = a.index + 1
         }
 
 
@@ -285,7 +281,7 @@ maybeField name getter codec (Record a) =
 buildRecord : Record a a -> Codec a
 buildRecord (Record a) =
     Codec
-        { encoder = \x -> a.encoder x |> List.reverse |> Json.Encode.object
+        { encoder = \x -> a.encoder x |> List.reverse |> Json.Encode.list identity
         , decoder = a.decoder
         }
 

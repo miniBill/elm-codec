@@ -42,7 +42,7 @@ recordsTest =
                 )
                 (Codec.record
                     (\a -> { a = a })
-                    |> Codec.field "a" .a Codec.int
+                    |> Codec.field .a Codec.int
                     |> Codec.buildRecord
                 )
             ]
@@ -55,37 +55,37 @@ recordsTest =
                 )
                 (Codec.record
                     (\a b -> { a = a, b = b })
-                    |> Codec.field "a" .a Codec.int
-                    |> Codec.field "b" .b Codec.int
+                    |> Codec.field .a Codec.int
+                    |> Codec.field .b Codec.int
                     |> Codec.buildRecord
                 )
             ]
         , Test.describe "with maybeField"
             (let
-                recordCodec : Codec.Codec { a : Maybe Int }
+                recordCodec : Codec.Codec { a : Int }
                 recordCodec =
                     Codec.record
                         (\a -> { a = a })
-                        |> Codec.maybeField "a" .a Codec.int
+                        |> Codec.maybeField .a Codec.int (\_ -> 0)
                         |> Codec.buildRecord
              in
              [ roundTripTest
                 (Fuzz.map
                     (\a -> { a = a })
-                    (Fuzz.maybe Fuzz.int)
+                    Fuzz.int
                 )
                 recordCodec
              , Test.test "maybeField is optional"
                 (\_ ->
                     Expect.equal
-                        (Ok { a = Nothing })
-                        (Codec.decodeString recordCodec "{}")
+                        (Ok { a = 0 })
+                        (Codec.decodeString recordCodec "[]")
                 )
-             , Test.test "maybeField doesn't produce a field on encoding Nothing"
+             , Test.test "equals snapshot"
                 (\_ ->
                     Expect.equal
-                        "{}"
-                        (Codec.encodeToString 0 recordCodec { a = Nothing })
+                        (Ok { a = 1 })
+                        (Codec.decodeString recordCodec "[1]")
                 )
              ]
             )
