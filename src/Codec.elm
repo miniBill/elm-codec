@@ -2,7 +2,7 @@ module Codec exposing
     ( Codec, build
     , encoder, encodeToString, encodeToValue
     , decoder, decodeString, decodeValue
-    , tuple, tuple3
+    , unit, tuple, tuple3
     , Record, record, field, maybeField, buildRecord
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , int, float, char, string, list, array, dict, set
@@ -27,7 +27,7 @@ module Codec exposing
 
 # Tuples
 
-@docs tuple, tuple3
+@docs unit, tuple, tuple3
 
 
 # Records
@@ -139,6 +139,16 @@ decodeValue a =
 
 
 -- TUPLES
+
+
+{-| `Codec` for unit type.
+-}
+unit : Codec ()
+unit =
+    Codec
+        { encoder = \() -> Json.Encode.list identity []
+        , decoder = Json.Decode.succeed ()
+        }
 
 
 {-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
