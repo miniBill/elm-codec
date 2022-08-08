@@ -881,24 +881,24 @@ lazy fn =
         }
 
 
-{-| Create a `Codec` that produces null as JSON and always decodes as the same value.
+{-| Create a `Codec` that always decodes as the same value.
 -}
 succeed : a -> Codec a
 succeed a =
     Codec
-        { encoder = \_ -> Json.Encode.null
+        { encoder = \_ -> encodeToValue unit ()
         , decoder = Json.Decode.succeed a
         }
 
 
 {-| Ignore the JSON and make the decoder fail. This is handy when used with
 `oneOf` or `andThen` where you want to give a custom error message in some
-case. The encoder will produce `null`.
+case.
 -}
 fail : String -> Codec a
 fail a =
     Codec
-        { encoder = \_ -> Json.Encode.null
+        { encoder = \_ -> encodeToValue unit ()
         , decoder = Json.Decode.fail a
         }
 
