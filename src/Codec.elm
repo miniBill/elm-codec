@@ -257,7 +257,7 @@ generate a decoding error, instead of silently failing and returning a `Nothing`
     optionalCodec = Codec.optional Codec.int
 
     Codec.decodeString optionalCodec "\"Not an int\""
-    --Returns a json decoding error with the message containing: "Expecting an INT"
+    -- Returns a json decoding error with the message containing: "Expecting an INT"
 
 -}
 optional : Codec a -> Codec (Maybe a)
@@ -462,18 +462,20 @@ nullableField name getter codec ocodec =
 {-| Similar to the `maybeField` codec, with added validation when the data exists. This means that bad data will
 generate a decoding error, instead of silently failing and returning a `Nothing`.
 
-1/ valid data provided: returns `Just` the decoded data
-2/ no data provided (either the field is missing, or it is null): returns `Nothing`
-3/ invalid data provided: returns a decoding error
+  - valid data provided: returns `Just` the decoded data
+  - no data provided (either the field is missing, or it is `null`): returns `Nothing`
+  - invalid data provided: returns a decoding error
 
-    type alias JustAnInt = { myInt: Maybe Int }
+```
+type alias JustAnInt = { myInt: Maybe Int }
 
-    objectCodec = Codec.object JustAnInt
+objectCodec = Codec.object JustAnInt
     |> Codec.optionalField "myInt" .myInt Codec.int
     |> Codec.buildObject
 
-    Codec.decodeString objectCodec """{"myInt": "Not an int"}"""
-    --Returns a json decoding error with the message containing: "Expecting an INT"
+Codec.decodeString objectCodec """{"myInt": "Not an int"}"""
+-- Returns a json decoding error with the message containing: "Expecting an INT"
+```
 
 -}
 optionalField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
@@ -496,24 +498,26 @@ optionalField name getter codec (ObjectCodec ocodec) =
 {-| Similar to the `optionalField` codec, but the default value is provided in case the data is missing.
 This means that bad data will generate a decoding error, instead of silently failing and returning the default value.
 
-1/ valid data provided: returns the decoded value
-2/ no data provided (either the field is missing, or it is null): returns the default value
-3/ invalid data provided: returns a decoding error
+  - valid data provided: returns the decoded value
+  - no data provided (either the field is missing, or it is `null`): returns the default value
+  - invalid data provided: returns a decoding error
 
-    type alias JustAnInt = { myInt: Int }
+```
+type alias JustAnInt = { myInt: Int }
 
-    objectCodec = Codec.object JustAnInt
+objectCodec = Codec.object JustAnInt
     |> Codec.optionalFieldWithDefault "myInt" .myInt Codec.int 0
     |> Codec.buildObject
 
-    Codec.decodeString objectCodec """{"myInt": "Not an int"}"""
-    --Returns a json decoding error with the message containing: "Expecting an INT"
+Codec.decodeString objectCodec """{"myInt": "Not an int"}"""
+-- Returns a json decoding error with the message containing: "Expecting an INT"
 
-    Codec.decodeString objectCodec """{"myInt": null}"""
-    --Returns: Ok { myInt = 0 }
+Codec.decodeString objectCodec """{"myInt": null}"""
+-- Returns: Ok { myInt = 0 }
 
-    Codec.decodeString objectCodec "{}"
-    --Returns: Ok { myInt = 0 }
+Codec.decodeString objectCodec "{}"
+-- Returns: Ok { myInt = 0 }
+```
 
 -}
 optionalFieldWithDefault : String -> (a -> f) -> Codec f -> f -> ObjectCodec a (f -> b) -> ObjectCodec a b
