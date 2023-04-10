@@ -7,7 +7,7 @@ module Codec exposing
     , Custom, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , int, float, char, string, list, array, dict, set
     , bool, maybe, result
-    , map, andThen, oneOf, lazy, succeed, fail, value
+    , map, andThen, oneOf, lazy, succeed, fail, value, versioned
     )
 
 {-| A `Codec` contains a JSON encoder and decoder.
@@ -52,7 +52,7 @@ module Codec exposing
 
 # Helper Functions
 
-@docs map, andThen, oneOf, lazy, succeed, fail, value
+@docs map, andThen, oneOf, lazy, succeed, fail, value, versioned
 
 -}
 
@@ -910,4 +910,29 @@ value =
     Codec
         { encoder = identity
         , decoder = Json.Decode.value
+        }
+
+
+{-| First attempt.
+-}
+versioned : String -> Codec a -> Codec a
+versioned version codec =
+    Codec
+        { encoder =
+            \x ->
+                Json.Encode.list
+                    identity
+                    [ Json.Encode.string version
+                    , encoder codec x
+                    ]
+        , decoder =
+            Json.Decode.index 0 Json.Decode.string
+                |> Json.Decode.andThen
+                    (\x ->
+                        if x == version then
+                            Json.Decode.index 1 (decoder codec)
+
+                        else
+                            Json.Decode.fail "Unknown version."
+                    )
         }
