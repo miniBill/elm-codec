@@ -3,7 +3,7 @@ module Codec exposing
     , Decoder, decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
-    , maybe, list, array, dict, set, tuple, triple, result
+    , maybe, nullable, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, maybeField, nullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
@@ -36,7 +36,7 @@ module Codec exposing
 
 # Data Structures
 
-@docs maybe, list, array, dict, set, tuple, triple, result
+@docs maybe, nullable, list, array, dict, set, tuple, triple, result
 
 
 # Object Primitives
@@ -238,7 +238,7 @@ composite enc dec (Codec codec) =
 
 This is encoded as `null` when the input is `Nothing`, and the same as `x` when `Just x`.
 
-If the decoding using the inner `Codec` fails, it will _succeed_ with `Nothing`.
+If the decoding using the inner `Codec` fails, it will _succeed_ with `Nothing`. If you want it to fail use `nullable` instead.
 
     encodeToString 0 (maybe int) (Just 3)
     --> "3"
@@ -255,6 +255,40 @@ If the decoding using the inner `Codec` fails, it will _succeed_ with `Nothing`.
 -}
 maybe : Codec a -> Codec (Maybe a)
 maybe codec =
+    Codec
+        { decoder = JD.maybe <| decoder codec
+        , encoder =
+            \v ->
+                case v of
+                    Nothing ->
+                        JE.null
+
+                    Just x ->
+                        encoder codec x
+        }
+
+
+{-| Represents an optional value.
+
+This is encoded as `null` when the input is `Nothing`, and the same as `x` when `Just x`.
+
+When decoding, it decodes `null` to `Nothing`. Otherwise, if the decoding using the inner `Codec` fails, it will fail. If you want it to succeed with `Nothing` use `maybe` instead.
+
+    encodeToString 0 (maybe int) (Just 3)
+    --> "3"
+    encodeToString 0 (maybe int) Nothing
+    --> "null"
+
+    decodeString (maybe int) "3"
+    --> Ok (Just 3)
+    decodeString (maybe int) "null"
+    --> Ok Nothing
+    decodeString (maybe int) "\"hello\""
+    --> Err ...
+
+-}
+nullable : Codec a -> Codec (Maybe a)
+nullable codec =
     Codec
         { decoder = JD.maybe <| decoder codec
         , encoder =
