@@ -44,11 +44,25 @@ roundtripsWithin : Fuzzer Float -> Codec Float -> Test
 roundtripsWithin fuzzer codec =
     fuzz fuzzer "is a roundtrip" <|
         \value ->
-            value
-                |> Codec.encoder codec
-                |> Codec.decodeValue codec
-                |> Result.withDefault -999.1234567
-                |> Expect.within (Expect.Relative 0.000001) value
+            case
+                value
+                    |> Codec.encoder codec
+                    |> Codec.decodeValue codec
+            of
+                Err _ ->
+                    Expect.fail "Decoding failed"
+
+                Ok v ->
+                    if isNaN value then
+                        if isNaN v then
+                            Expect.pass
+
+                        else
+                            Expect.fail "NaN decoded to non-NaN"
+
+                    else
+                        v
+                            |> Expect.within (Expect.Relative 0.000001) value
 
 
 basicTests : List Test
@@ -60,7 +74,17 @@ basicTests =
         [ roundtrips Fuzz.int Codec.int
         ]
     , describe "Codec.float"
-        [ roundtrips Fuzz.float Codec.float
+        [ roundtrips
+            (Fuzz.oneOf
+                [ Fuzz.niceFloat
+                , Fuzz.constant (1 / 0)
+                , Fuzz.constant (-1 / 0)
+                ]
+            )
+            Codec.float
+        , describe "Works for NaN"
+            [ roundtripsWithin Fuzz.float Codec.float
+            ]
         ]
     , describe "Codec.bool"
         [ roundtrips Fuzz.bool Codec.bool
@@ -91,7 +115,7 @@ containersTests =
         ]
     , describe "Codec.tuple"
         [ roundtrips
-            (Fuzz.tuple ( Fuzz.int, Fuzz.int ))
+            (Fuzz.pair Fuzz.int Fuzz.int)
             (Codec.tuple Codec.int Codec.int)
         ]
     ]
