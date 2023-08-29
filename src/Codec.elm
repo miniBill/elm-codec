@@ -4,7 +4,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
     , maybe, nullable, list, array, dict, set, tuple, triple, result
-    , ObjectCodec, object, field, optionalField, buildObject
+    , ObjectCodec, object, field, optionalField, optionalNullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
@@ -42,7 +42,7 @@ module Codec exposing
 
 # Object Primitives
 
-@docs ObjectCodec, object, field, optionalField, buildObject
+@docs ObjectCodec, object, field, optionalField, optionalNullableField, buildObject
 
 
 # Custom Types
@@ -465,7 +465,7 @@ field name getter codec (ObjectCodec ocodec) =
 
 This is particularly useful for evolving your `Codec`s.
 
-If the field is not present in the input then it gets decoded to `Nothing`. _If the field value cannot be decoded by the given `Codec` it also gets decoded to `Nothing`. Use `optionalField` if you want it to fail instead._
+If the field is not present in the input then it gets decoded to `Nothing`. \_If the field value cannot be decoded by the given `Codec` it also gets decoded to `Nothing`. Even worse, if the input is not an object, this `Codec` still succeeds!
 
 When encoding, if the optional field's value is `Nothing` then the resulting object will not contain that field.
 
@@ -493,7 +493,7 @@ maybeField name getter codec (ObjectCodec ocodec) =
 
 This is particularly useful for evolving your `Codec`s.
 
-If the field is not present in the input then it gets decoded to `Nothing`. If the field value cannot be decoded by the given `Codec` it gets decoded to `Nothing`. Use `optionalField` if you want it to fail instead.
+If the field is not present in the input then it gets decoded to `Nothing`. If the field cannot be decoded this will fail. If the value is `null` then this will fail, use `optionalNullableField` if you want it to succeed instad.
 If the optional field's value is `Nothing` then the resulting object will not contain that field.
 
 -}
@@ -509,18 +509,53 @@ optionalField name getter codec (ObjectCodec ocodec) =
                     Nothing ->
                         ocodec.encoder v
         , decoder =
-            -- Decoder from https://github.com/elm-community/json-extra/blob/4.3.0/src/Json/Decode/Extra.elm#L272
-            JD.value
+            -- Decoder inspired by https://github.com/elm-community/json-extra/blob/4.3.0/src/Json/Decode/Extra.elm#L272
+            JD.keyValuePairs JD.value
                 |> JD.andThen
                     (\json ->
-                        case JD.decodeValue (JD.field name JD.value) json of
-                            Ok _ ->
-                                --The field exist, actually run the decoder
-                                JD.map Just (JD.field name (decoder codec))
+                        if List.any (\( k, _ ) -> k == name) json then
+                            --The field exist, actually run the decoder
+                            JD.map Just (JD.field name (decoder codec))
 
-                            Err _ ->
-                                -- The field is missing
-                                JD.succeed Nothing
+                        else
+                            -- The field is missing
+                            JD.succeed Nothing
+                    )
+                |> JD.map2 (\f x -> f x) ocodec.decoder
+        }
+
+
+{-| Specify the name getter and `Codec` for an optional field.
+
+This is particularly useful for evolving your `Codec`s.
+
+If the field is not present in the input then it gets decoded to `Nothing`. If the field cannot be decoded this will fail. If the value is `null` then this will succeed with `Nothing`, use `optionalField` if you want it to fail instad.
+If the optional field's value is `Nothing` then the resulting object will not contain that field.
+
+-}
+optionalNullableField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
+optionalNullableField name getter codec (ObjectCodec ocodec) =
+    ObjectCodec
+        { encoder =
+            \v ->
+                case getter v of
+                    Just present ->
+                        ( name, encoder codec present ) :: ocodec.encoder v
+
+                    Nothing ->
+                        ocodec.encoder v
+        , decoder =
+            -- Decoder inspired by https://github.com/elm-community/json-extra/blob/4.3.0/src/Json/Decode/Extra.elm#L272
+            JD.keyValuePairs JD.value
+                |> JD.andThen
+                    (\json ->
+                        if List.any (\( k, _ ) -> k == name) json then
+                            --The field exist, actually run the decoder
+                            JD.field name (JD.nullable <| decoder codec)
+
+                        else
+                            -- The field is missing
+                            JD.succeed Nothing
                     )
                 |> JD.map2 (\f x -> f x) ocodec.decoder
         }
