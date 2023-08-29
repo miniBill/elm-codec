@@ -4,11 +4,12 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char
     , maybe, nullable, list, array, dict, set, tuple, triple, result
-    , ObjectCodec, object, field, maybeField, nullableField, buildObject
+    , ObjectCodec, object, field, optionalField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
     , succeed, recursive, fail, andThen, lazy, value, build, constant
+    , nullableField, maybeField
     )
 
 {-| A `Codec a` contain a JSON `Decoder a` and the corresponding `a -> Value` encoder.
@@ -41,7 +42,7 @@ module Codec exposing
 
 # Object Primitives
 
-@docs ObjectCodec, object, field, maybeField, nullableField, buildObject
+@docs ObjectCodec, object, field, optionalField, buildObject
 
 
 # Custom Types
@@ -62,6 +63,11 @@ module Codec exposing
 # Fancy Codecs
 
 @docs succeed, recursive, fail, andThen, lazy, value, build, constant
+
+
+# Deprecated
+
+@docs nullableField, maybeField
 
 -}
 
@@ -455,10 +461,13 @@ field name getter codec (ObjectCodec ocodec) =
 
 {-| Specify the name getter and `Codec` for an optional field.
 
+**Warning! This is a footgun and thus deprecated, you should probably use `optionalField` instead.**
+
 This is particularly useful for evolving your `Codec`s.
 
-If the field is not present in the input then it gets decoded to `Nothing`.
-If the optional field's value is `Nothing` then the resulting object will not contain that field.
+If the field is not present in the input then it gets decoded to `Nothing`. _If the field value cannot be decoded by the given `Codec` it also gets decoded to `Nothing`. Use `optionalField` if you want it to fail instead._
+
+When encoding, if the optional field's value is `Nothing` then the resulting object will not contain that field.
 
 -}
 maybeField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
@@ -480,7 +489,46 @@ maybeField name getter codec (ObjectCodec ocodec) =
         }
 
 
+{-| Specify the name getter and `Codec` for an optional field.
+
+This is particularly useful for evolving your `Codec`s.
+
+If the field is not present in the input then it gets decoded to `Nothing`. If the field value cannot be decoded by the given `Codec` it gets decoded to `Nothing`. Use `optionalField` if you want it to fail instead.
+If the optional field's value is `Nothing` then the resulting object will not contain that field.
+
+-}
+optionalField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
+optionalField name getter codec (ObjectCodec ocodec) =
+    ObjectCodec
+        { encoder =
+            \v ->
+                case getter v of
+                    Just present ->
+                        ( name, encoder codec present ) :: ocodec.encoder v
+
+                    Nothing ->
+                        ocodec.encoder v
+        , decoder =
+            -- Decoder from https://github.com/elm-community/json-extra/blob/4.3.0/src/Json/Decode/Extra.elm#L272
+            JD.value
+                |> JD.andThen
+                    (\json ->
+                        case JD.decodeValue (JD.field name JD.value) json of
+                            Ok _ ->
+                                --The field exist, actually run the decoder
+                                JD.map Just (JD.field name (decoder codec))
+
+                            Err _ ->
+                                -- The field is missing
+                                JD.succeed Nothing
+                    )
+                |> JD.map2 (\f x -> f x) ocodec.decoder
+        }
+
+
 {-| Specify the name getter and `Codec` for a required field, whose value can be `null`.
+
+**Warning! This is a footgun and thus deprecated, you should probably use `field` with `nullable` instead.**
 
 If the field is not present in the input then _the decoding fails_.
 If the field's value is `Nothing` then the resulting object will contain the field with a `null` value.
