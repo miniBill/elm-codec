@@ -235,6 +235,23 @@ composite enc dec (Codec codec) =
 
 
 {-| Represents an optional value.
+
+This is encoded as `null` when the input is `Nothing`, and the same as `x` when `Just x`.
+
+If the decoding using the inner `Codec` fails, it will _succeed_ with `Nothing`.
+
+    encodeToString 0 (maybe int) (Just 3)
+    --> "3"
+    encodeToString 0 (maybe int) Nothing
+    --> "null"
+
+    decodeString (maybe int) "3"
+    --> Ok (Just 3)
+    decodeString (maybe int) "null"
+    --> Ok Nothing
+    decodeString (maybe int) "\"hello\""
+    --> Ok Nothing
+
 -}
 maybe : Codec a -> Codec (Maybe a)
 maybe codec =
