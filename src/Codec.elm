@@ -296,7 +296,7 @@ When decoding, it decodes `null` to `Nothing`. Otherwise, if the decoding using 
 nullable : Codec a -> Codec (Maybe a)
 nullable codec =
     Codec
-        { decoder = JD.maybe <| decoder codec
+        { decoder = JD.nullable <| decoder codec
         , encoder =
             \v ->
                 case v of

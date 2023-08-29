@@ -17,6 +17,7 @@ suite =
         , describe "Custom" customTests
         , describe "bimap" bimapTests
         , describe "maybe" maybeTests
+        , describe "nullable" nullableTests
         , describe "succeed"
             [ test "roundtrips"
                 (\_ ->
@@ -285,6 +286,11 @@ maybeTests =
           <|
             Codec.maybe Codec.int
         ]
+    , test "Decodes wrong types to Nothing" <|
+        \_ ->
+            "3"
+                |> Codec.decodeString (Codec.maybe Codec.string)
+                |> Expect.equal (Ok Nothing)
 
     {-
        This is a known limitation: using null as Nothing and identity as Just means that nesting two maybes squashes Just Nothing with Nothing
@@ -301,6 +307,26 @@ maybeTests =
                   Codec.maybe Codec.int
           ]
     -}
+    ]
+
+
+nullableTests : List Test
+nullableTests =
+    [ describe "single"
+        [ roundtrips
+            (Fuzz.oneOf
+                [ Fuzz.constant Nothing
+                , Fuzz.map Just Fuzz.int
+                ]
+            )
+          <|
+            Codec.nullable Codec.int
+        ]
+    , test "Does not decode wrong types" <|
+        \_ ->
+            "3"
+                |> Codec.decodeString (Codec.nullable Codec.string)
+                |> Expect.notEqual (Ok Nothing)
     ]
 
 
