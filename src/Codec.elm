@@ -530,10 +530,10 @@ optionalField name getter codec (ObjectCodec ocodec) =
 
 **Warning! This is a footgun and thus deprecated, you should probably use `field` with `nullable` instead.**
 
-If the field is not present in the input then _the decoding fails_.
+If the field is not present in the input then _the decoding fails_. If the field is present but can't be decoded then _the decoding succeeds with `Nothing`_.
 If the field's value is `Nothing` then the resulting object will contain the field with a `null` value.
 
-This is a shorthand for a field having a codec built using `Codec.maybe`.
+This is a shorthand for a field having a `Codec` built using `maybe`.
 
 -}
 nullableField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
