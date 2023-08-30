@@ -1,7 +1,5 @@
 # elm-codecs
 
-[![Build Status](https://travis-ci.org/miniBill/elm-codec.svg?branch=master)](https://travis-ci.org/miniBill/elm-codec)
-
 This package allows you to build pairs of JSON encoders (`a -> Value`) and decoders (`Decoder a`), collectively called a `Codec a`.
 
 It supports all of the basic types, collections, records and even custom types! See an example at the bottom of this document.
@@ -20,9 +18,10 @@ Ask for help on the [Elm Slack](https://elmlang.herokuapp.com/).
 You can also have a look at the `FAQ.md` file.
 
 ## Examples
+
 See the `examples` folder for more examples.
 
-### Basic usage ###
+### Basic usage
 
 ```elm
 import Codec exposing (Codec, Value)
@@ -40,7 +39,7 @@ decodeString s =
     Codec.decodeString codec s
 ```
 
-### Custom types ###
+### Custom types
 
 ```elm
 type Semaphore
@@ -54,7 +53,7 @@ semaphoreCodec =
         (\red yellow green value ->
             case value of
                 Red i s ->
-                    red i s 
+                    red i s
 
                 Yellow ->
                     yellow
