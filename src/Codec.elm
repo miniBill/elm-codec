@@ -2,7 +2,7 @@ module Codec exposing
     ( Codec, Value, Error
     , Decoder, decoder, decodeString, decodeValue
     , encoder, encodeToString, encodeToValue
-    , string, bool, int, float, char
+    , string, bool, int, float, char, enum
     , maybe, nullable, list, array, dict, set, tuple, triple, result
     , ObjectCodec, object, field, optionalField, optionalNullableField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
@@ -32,7 +32,7 @@ module Codec exposing
 
 # Primitives
 
-@docs string, bool, int, float, char
+@docs string, bool, int, float, char, enum
 
 
 # Data Structures
@@ -226,6 +226,92 @@ char =
                             JD.fail "Expected a single char"
                 )
         )
+
+
+{-| `Codec` for a fixed list of Elm values.
+
+This can be used for custom types, if they are really simple:
+
+    type Semaphore = Red | Yellow | Green
+
+    semaphoreCodec : Codec Semaphore
+    semaphoreCodec =
+        enum Codec.string
+            [ ("Red", Red)
+            , ("Yellow", Yellow)
+            , ("Green", Green)
+            ]
+
+    encodeToString 0 semaphoreCodec Red
+    --> "\"Red\""
+    decodeString semaphoreCodec "\"Red\""
+    --> Ok Red
+
+    type Count = One | Two | Three
+
+    countCodec : Codec Count
+    countCodec =
+        enum Codec.int
+            [ (1, One)
+            , (2, Two)
+            , (3, Three)
+            ]
+
+    encodeToString 0 countCodec Two
+    --> "2"
+    decodeString countCodec "2"
+    --> Ok Two
+
+    incompleteCodec : Codec Count
+    incompleteCodec =
+        enum Codec.int
+            [ (1, One)
+            , (2, Two)
+            ]
+
+    encodeToString 0 incompleteCodec Three
+    --> "null"
+
+    decodeString incompleteCodec "3" |> Result.mapError (\_ -> "...")
+    --> Err "..."
+
+-}
+enum : Codec a -> List ( a, b ) -> Codec b
+enum (Codec codec) options =
+    let
+        enc : List ( a, b ) -> b -> JE.Value
+        enc queue val =
+            case queue of
+                [] ->
+                    JE.null
+
+                ( k, v ) :: tail ->
+                    if v == val then
+                        codec.encoder k
+
+                    else
+                        enc tail val
+
+        dec : List ( a, b ) -> a -> JD.Decoder b
+        dec queue key =
+            case queue of
+                [] ->
+                    JD.fail "Key not found"
+
+                ( k, v ) :: tail ->
+                    if k == key then
+                        JD.succeed v
+
+                    else
+                        dec tail key
+    in
+    Codec
+        { encoder = enc options
+        , decoder =
+            codec.decoder
+                |> JD.andThen
+                    (\k -> dec options k)
+        }
 
 
 
