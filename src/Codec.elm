@@ -644,6 +644,7 @@ variant :
     -> CustomCodec b v
 variant name matchPiece decoderPiece (CustomCodec am) =
     let
+        enc : List JE.Value -> JE.Value
         enc v =
             JE.object
                 [ ( "tag", JE.string name )

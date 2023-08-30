@@ -21,8 +21,12 @@ suite =
         , describe "succeed"
             [ test "roundtrips"
                 (\_ ->
-                    Codec.succeed 632
-                        |> (\d -> Codec.decodeString d "{}")
+                    let
+                        codec : Codec number
+                        codec =
+                            Codec.succeed 632
+                    in
+                    Codec.decodeString codec "{}"
                         |> Expect.equal (Ok 632)
                 )
             ]
@@ -161,12 +165,14 @@ objectTests =
         ]
     , describe "nullableField vs maybeField" <|
         let
+            nullableCodec : Codec { f : Maybe Int }
             nullableCodec =
                 Codec.object
                     (\f -> { f = f })
                     |> Codec.nullableField "f" .f Codec.int
                     |> Codec.buildObject
 
+            maybeCodec : Codec { f : Maybe Int }
             maybeCodec =
                 Codec.object
                     (\f -> { f = f })
@@ -204,6 +210,10 @@ objectTests =
     ]
 
 
+type Empty
+    = Empty
+
+
 type Newtype a
     = Newtype a
 
@@ -211,14 +221,14 @@ type Newtype a
 customTests : List Test
 customTests =
     [ describe "with 1 ctor, 0 args"
-        [ roundtrips (Fuzz.constant ())
+        [ roundtrips (Fuzz.constant Empty)
             (Codec.custom
                 (\f v ->
                     case v of
-                        () ->
+                        Empty ->
                             f
                 )
-                |> Codec.variant0 "()" ()
+                |> Codec.variant0 "Empty" Empty
                 |> Codec.buildCustom
             )
         ]
@@ -236,6 +246,7 @@ customTests =
         ]
     , describe "with 2 ctors, 0,1 args" <|
         let
+            match : b -> (a -> b) -> Maybe a -> b
             match fnothing fjust value =
                 case value of
                     Nothing ->
@@ -244,12 +255,14 @@ customTests =
                     Just v ->
                         fjust v
 
+            codec : Codec (Maybe Int)
             codec =
                 Codec.custom match
                     |> Codec.variant0 "Nothing" Nothing
                     |> Codec.variant1 "Just" Just Codec.int
                     |> Codec.buildCustom
 
+            fuzzers : List ( String, Fuzzer (Maybe Int) )
             fuzzers =
                 [ ( "1st ctor", Fuzz.constant Nothing )
                 , ( "2nd ctor", Fuzz.map Just Fuzz.int )
