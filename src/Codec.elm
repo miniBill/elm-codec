@@ -280,17 +280,17 @@ This is encoded as `null` when the input is `Nothing`, and the same as `x` when 
 
 When decoding, it decodes `null` to `Nothing`. Otherwise, if the decoding using the inner `Codec` fails, it will fail. If you want it to succeed with `Nothing` use `maybe` instead.
 
-    encodeToString 0 (maybe int) (Just 3)
+    encodeToString 0 (nullable int) (Just 3)
     --> "3"
-    encodeToString 0 (maybe int) Nothing
+    encodeToString 0 (nullable int) Nothing
     --> "null"
 
-    decodeString (maybe int) "3"
+    decodeString (nullable int) "3"
     --> Ok (Just 3)
-    decodeString (maybe int) "null"
+    decodeString (nullable int) "null"
     --> Ok Nothing
-    decodeString (maybe int) "\"hello\""
-    --> Err ...
+    decodeString (nullable int) "\"hello\"" |> Result.mapError (\_ -> "...")
+    --> Err "..."
 
 -}
 nullable : Codec a -> Codec (Maybe a)
