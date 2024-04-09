@@ -2,6 +2,6 @@
   "devDependencies": {
     "elm-review": "^2.10.2",
     "elm-test": "^0.19.1-revision12",
-    "elm-verify-examples": "^5.2.0"
+    "elm-verify-examples": "^6.0.3"
   }
 }
