@@ -4,12 +4,13 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char, enum
     , maybe, nullable, list, array, dict, set, tuple, triple, result
-    , ObjectCodec, object, field, optionalField, optionalNullableField, buildObject
+    , ObjectCodec, object, field, optionalField, optionalNullableField, optionalMaybeField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
     , succeed, recursive, fail, andThen, lazy, value, build, constant
     , nullableField, maybeField
+    , getFields
     )
 
 {-| A `Codec a` contain a JSON `Decoder a` and the corresponding `a -> Value` encoder.
@@ -42,7 +43,7 @@ module Codec exposing
 
 # Object Primitives
 
-@docs ObjectCodec, object, field, optionalField, optionalNullableField, buildObject
+@docs ObjectCodec, object, field, optionalField, optionalNullableField, optionalMaybeField, buildObject
 
 
 # Custom Types
@@ -68,6 +69,11 @@ module Codec exposing
 # Deprecated
 
 @docs nullableField, maybeField
+
+
+# Miscellaneous
+
+@docs getFields
 
 -}
 
@@ -494,6 +500,7 @@ type ObjectCodec a b
     = ObjectCodec
         { encoder : a -> List ( String, Value )
         , decoder : Decoder b
+        , fields : List String
         }
 
 
@@ -529,7 +536,15 @@ object ctor =
     ObjectCodec
         { encoder = \_ -> []
         , decoder = JD.succeed ctor
+        , fields = []
         }
+
+
+{-| Get all of the fields present in an ObjectCodec. This might be useful if you are making a request to a database and you want to both decode the response and be able to include in the request a filter so you only receive the fields you intend to decode.
+-}
+getFields : ObjectCodec a b -> List String
+getFields (ObjectCodec ocodec) =
+    ocodec.fields
 
 
 {-| Specify the name, getter and `Codec` for a field.
@@ -542,6 +557,7 @@ field name getter codec (ObjectCodec ocodec) =
     ObjectCodec
         { encoder = \v -> ( name, encoder codec <| getter v ) :: ocodec.encoder v
         , decoder = JD.map2 (\f x -> f x) ocodec.decoder (JD.field name (decoder codec))
+        , fields = name :: ocodec.fields
         }
 
 
@@ -572,6 +588,7 @@ maybeField name getter codec (ObjectCodec ocodec) =
                 |> JD.field name
                 |> JD.maybe
                 |> JD.map2 (\f x -> f x) ocodec.decoder
+        , fields = name :: ocodec.fields
         }
 
 
@@ -608,6 +625,40 @@ optionalField name getter codec (ObjectCodec ocodec) =
                             JD.succeed Nothing
                     )
                 |> JD.map2 (\f x -> f x) ocodec.decoder
+        , fields = name :: ocodec.fields
+        }
+
+
+{-| An object field that might not be present or might contain data that maps to Nothing.
+This function flattens both into Nothing rather than making you deal with a `Maybe (Maybe a)` type.
+When encoding, if the value is Nothing then the field is not included.
+-}
+optionalMaybeField : String -> (a -> Maybe f) -> Codec (Maybe f) -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
+optionalMaybeField name getter codec (ObjectCodec ocodec) =
+    ObjectCodec
+        { encoder =
+            \v ->
+                case getter v of
+                    Just present ->
+                        ( name, encoder codec (Just present) ) :: ocodec.encoder v
+
+                    Nothing ->
+                        ocodec.encoder v
+        , decoder =
+            -- Decoder inspired by https://github.com/elm-community/json-extra/blob/4.3.0/src/Json/Decode/Extra.elm#L272
+            JD.keyValuePairs JD.value
+                |> JD.andThen
+                    (\json ->
+                        if List.any (\( k, _ ) -> k == name) json then
+                            --The field exist, actually run the decoder
+                            JD.field name (decoder codec)
+
+                        else
+                            -- The field is missing
+                            JD.succeed Nothing
+                    )
+                |> JD.map2 (\f x -> f x) ocodec.decoder
+        , fields = name :: ocodec.fields
         }
 
 
@@ -644,6 +695,7 @@ optionalNullableField name getter codec (ObjectCodec ocodec) =
                             JD.succeed Nothing
                     )
                 |> JD.map2 (\f x -> f x) ocodec.decoder
+        , fields = name :: ocodec.fields
         }
 
 
