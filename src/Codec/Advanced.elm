@@ -57,7 +57,7 @@ This version allows you to control how variants are encoded, but will use `Json.
             |> Codec.Advanced.variant
                 (\() -> Yellow)
                 (Codec.succeed ())
-            |> Codec.Advanced.buildCustom
+            |> Codec.Advanced.build
 
 -}
 custom : match -> AdvancedCodec match value
