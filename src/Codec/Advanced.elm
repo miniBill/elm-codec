@@ -25,7 +25,7 @@ type AdvancedCodec match v
 
 {-| Starts building an advanced `Codec`, usually used for a custom type.
 
-This version allows you to control how variants are encoded, but will use `oneOf` under the hood, so if two variants have the same shape when encoded, it will always use the first one for decoding.
+This version allows you to control how variants are encoded, but will use `Json.Decode.oneOf` under the hood, so if two variants have the same shape when encoded, it will always use the first one for decoding.
 
 **⚠️ In particular, in the example below swapping the `Green` and `Yellow` variants means that `Green` values will be decoded as `Yellow` (because `Codec.succeed` always succeeds). ⚠️**
 
