@@ -1,4 +1,4 @@
-module Codec.Advanced exposing (AdvancedCodec(..), custom, variant, build)
+module Codec.Advanced exposing (AdvancedCodec, custom, variant, build)
 
 {-|
 
@@ -17,7 +17,7 @@ import Json.Decode as JD
 {-| A partially built advanced `Codec`.
 -}
 type AdvancedCodec match v
-    = CustomCodec
+    = AdvancedCodec
         { match : match
         , decoder : List (Decoder v)
         }
@@ -62,7 +62,7 @@ This version allows you to control how variants are encoded, but will use `Json.
 -}
 custom : match -> AdvancedCodec match value
 custom match =
-    CustomCodec
+    AdvancedCodec
         { match = match
         , decoder = []
         }
@@ -78,8 +78,8 @@ variant :
     -> Codec a
     -> AdvancedCodec ((a -> Value) -> b) v
     -> AdvancedCodec b v
-variant matchPiece decoderPiece (CustomCodec am) =
-    CustomCodec
+variant matchPiece decoderPiece (AdvancedCodec am) =
+    AdvancedCodec
         { match = am.match (Codec.encoder decoderPiece)
         , decoder = JD.map matchPiece (Codec.decoder decoderPiece) :: am.decoder
         }
@@ -88,7 +88,7 @@ variant matchPiece decoderPiece (CustomCodec am) =
 {-| Build a `Codec` from a fully build `AdvancedCodec`.
 -}
 build : AdvancedCodec (a -> Value) a -> Codec a
-build (CustomCodec am) =
+build (AdvancedCodec am) =
     Codec.build
         am.match
         (JD.oneOf (List.reverse am.decoder))
