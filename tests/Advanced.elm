@@ -49,7 +49,7 @@ semaphoreCodec =
         |> Codec.Advanced.variant
             (\() -> Yellow)
             (Codec.succeed ())
-        |> Codec.Advanced.buildCustom
+        |> Codec.Advanced.build
 
 
 wrongSemaphoreCodec : Codec Semaphore
@@ -75,7 +75,7 @@ wrongSemaphoreCodec =
         |> Codec.Advanced.variant
             Green
             Codec.float
-        |> Codec.Advanced.buildCustom
+        |> Codec.Advanced.build
 
 
 semaphoreFuzzer : Fuzzer Semaphore

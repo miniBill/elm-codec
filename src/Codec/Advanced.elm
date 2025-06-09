@@ -1,8 +1,8 @@
-module Codec.Advanced exposing (CustomCodec(..), custom, variant, buildCustom)
+module Codec.Advanced exposing (AdvancedCodec(..), custom, variant, build)
 
 {-|
 
-@docs CustomCodec, custom, variant, buildCustom
+@docs AdvancedCodec, custom, variant, build
 
 -}
 
@@ -14,20 +14,20 @@ import Json.Decode as JD
 -- CUSTOM
 
 
-{-| A partially built `Codec` for a custom type.
+{-| A partially built advanced `Codec`.
 -}
-type CustomCodec match v
+type AdvancedCodec match v
     = CustomCodec
         { match : match
         , decoder : List (Decoder v)
         }
 
 
-{-| Starts building a `Codec` for a custom type.
+{-| Starts building an advanced `Codec`, usually used for a custom type.
 
 This version allows you to control how variants are encoded, but will use `oneOf` under the hood, so if two variants have the same shape when encoded, it will always use the first one for decoding.
 
-**In particular, in the example below swapping the `Green` and `Yellow` variants means that `Green` values will be decoded as `Yellow` (because `Codec.succeed` always succeeds).**
+**⚠️ In particular, in the example below swapping the `Green` and `Yellow` variants means that `Green` values will be decoded as `Yellow` (because `Codec.succeed` always succeeds). ⚠️**
 
     type Semaphore
         = Red Int String
@@ -60,7 +60,7 @@ This version allows you to control how variants are encoded, but will use `oneOf
             |> Codec.Advanced.buildCustom
 
 -}
-custom : match -> CustomCodec match value
+custom : match -> AdvancedCodec match value
 custom match =
     CustomCodec
         { match = match
@@ -68,7 +68,7 @@ custom match =
         }
 
 
-{-| Define a variant for a custom type.
+{-| Define a variant for an advanced codec.
 
 The first argument is a function from the encoded type to your custom type, the second argument is a codec for the encoded type.
 
@@ -76,8 +76,8 @@ The first argument is a function from the encoded type to your custom type, the 
 variant :
     (a -> v)
     -> Codec a
-    -> CustomCodec ((a -> Value) -> b) v
-    -> CustomCodec b v
+    -> AdvancedCodec ((a -> Value) -> b) v
+    -> AdvancedCodec b v
 variant matchPiece decoderPiece (CustomCodec am) =
     CustomCodec
         { match = am.match (Codec.encoder decoderPiece)
@@ -85,10 +85,10 @@ variant matchPiece decoderPiece (CustomCodec am) =
         }
 
 
-{-| Build a `Codec` for a fully specified custom type.
+{-| Build a `Codec` from a fully build `AdvancedCodec`.
 -}
-buildCustom : CustomCodec (a -> Value) a -> Codec a
-buildCustom (CustomCodec am) =
+build : AdvancedCodec (a -> Value) a -> Codec a
+build (CustomCodec am) =
     Codec.build
         am.match
         (JD.oneOf (List.reverse am.decoder))
