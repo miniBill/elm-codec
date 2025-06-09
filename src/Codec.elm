@@ -765,6 +765,10 @@ You need to pass a pattern matching function, built like this:
             |> Codec.variant1 "Green" Green Codec.float
             |> Codec.buildCustom
 
+The values are encoded as an object with a `tag` field containing the name you specified and an `args` field containing the list of encoded arguments.
+
+If you need more control over the shape you can use `Codec.Advanced.custom`.
+
 -}
 custom : match -> CustomCodec match value
 custom match =
