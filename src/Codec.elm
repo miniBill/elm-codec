@@ -4,7 +4,7 @@ module Codec exposing
     , encoder, encodeToString, encodeToValue
     , string, bool, int, float, char, enum
     , maybe, nullable, list, array, dict, set, tuple, triple, result
-    , ObjectCodec, object, field, optionalField, optionalNullableField, optionalMaybeField, buildObject
+    , ObjectCodec, object, field, optionalField, optionalNullableField, optionalMaybeField, constantField, buildObject
     , CustomCodec, custom, variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8, buildCustom
     , oneOf
     , map
@@ -43,7 +43,7 @@ module Codec exposing
 
 # Object Primitives
 
-@docs ObjectCodec, object, field, optionalField, optionalNullableField, optionalMaybeField, buildObject
+@docs ObjectCodec, object, field, optionalField, optionalNullableField, optionalMaybeField, constantField, buildObject
 
 
 # Custom Types
@@ -712,6 +712,34 @@ This is a shorthand for a field having a `Codec` built using `maybe`.
 nullableField : String -> (a -> Maybe f) -> Codec f -> ObjectCodec a (Maybe f -> b) -> ObjectCodec a b
 nullableField name getter codec ocodec =
     field name getter (maybe codec) ocodec
+
+
+{-| Specify the value and `Codec` for a required field, whose value is fixed.
+
+This is useful for "type" fields, or for fields that are required by some third party but you don't need to decode.
+
+-}
+constantField : String -> f -> Codec f -> ObjectCodec a b -> ObjectCodec a b
+constantField name const codec (ObjectCodec ocodec) =
+    ObjectCodec
+        { encoder =
+            \v ->
+                ( name, encoder codec const ) :: ocodec.encoder v
+        , decoder =
+            JD.map2 always
+                ocodec.decoder
+                (JD.field name (decoder codec)
+                    |> JD.andThen
+                        (\found ->
+                            if found == const then
+                                JD.succeed ()
+
+                            else
+                                JD.fail ("Unexpected value, expected " ++ encodeToString 0 codec const)
+                        )
+                )
+        , fields = name :: ocodec.fields
+        }
 
 
 {-| Create a `Codec` from a fully specified `ObjectCodec`.

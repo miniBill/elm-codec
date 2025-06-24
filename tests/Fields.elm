@@ -52,8 +52,34 @@ suite =
         , bad = Expect.err
         , notObject = Expect.err
         }
+    , constantField
     ]
         |> describe "Testing the various field variants"
+
+
+constantField : Test
+constantField =
+    let
+        inner : String -> String -> (Result Codec.Error () -> Expect.Expectation) -> Test
+        inner testLabel input expect =
+            test (testLabel ++ ": " ++ input) <|
+                \_ ->
+                    input
+                        |> Codec.decodeString
+                            (Codec.object ()
+                                |> Codec.constantField "a" 3 Codec.int
+                                |> Codec.buildObject
+                            )
+                        |> expect
+    in
+    [ inner "Good field" "{ \"a\": 3 }" (Expect.equal (Ok ()))
+    , inner "Bad field (type)" "{ \"a\": \"b\" }" Expect.err
+    , inner "Bad field (value)" "{ \"a\": 5 }" Expect.err
+    , inner "Missing field" "{}" Expect.err
+    , inner "Null field" "{ \"a\": null }" Expect.err
+    , inner "Not object" "3" Expect.err
+    ]
+        |> describe "constantField"
 
 
 testField :
