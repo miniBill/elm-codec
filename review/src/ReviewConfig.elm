@@ -50,7 +50,9 @@ config =
     , NoDebug.TodoOrToString.rule
         |> Rule.ignoreErrorsForDirectories [ "tests/" ]
     , NoExposingEverything.rule
+        |> Rule.ignoreErrorsForDirectories [ "tests/VerifyExamples" ]
     , NoImportingEverything.rule []
+        |> Rule.ignoreErrorsForDirectories [ "tests/VerifyExamples" ]
     , NoMissingTypeAnnotation.rule
     , NoMissingTypeAnnotationInLetIn.rule
     , NoMissingTypeExpose.rule
@@ -60,6 +62,7 @@ config =
     , NoUnused.CustomTypeConstructorArgs.rule
     , NoUnused.Dependencies.rule
     , NoUnused.Exports.rule
+        |> Rule.ignoreErrorsForDirectories [ "tests" ]
     , NoUnused.Parameters.rule
     , NoUnused.Patterns.rule
     , NoUnused.Variables.rule
