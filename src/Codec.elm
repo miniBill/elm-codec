@@ -161,8 +161,10 @@ encoder (Codec m) =
 the amount of indentation in the result string.
 -}
 encodeToString : Int -> Codec a -> a -> String
-encodeToString indentation codec =
-    encoder codec >> JE.encode indentation
+encodeToString indentation codec v =
+    v
+        |> encoder codec
+        |> JE.encode indentation
 
 
 {-| Convert a value into a Javascript `Value`.
@@ -220,7 +222,11 @@ float =
 char : Codec Char
 char =
     build
-        (String.fromChar >> JE.string)
+        (\c ->
+            c
+                |> String.fromChar
+                |> JE.string
+        )
         (JD.string
             |> JD.andThen
                 (\s ->
@@ -419,7 +425,12 @@ array =
 dict : Codec a -> Codec (Dict String a)
 dict =
     composite
-        (\e -> JE.object << Dict.toList << Dict.map (\_ -> e))
+        (\itemEncoder item ->
+            item
+                |> Dict.map (\_ -> itemEncoder)
+                |> Dict.toList
+                |> JE.object
+        )
         JD.dict
 
 
@@ -428,8 +439,8 @@ dict =
 set : Codec comparable -> Codec (Set comparable)
 set =
     composite
-        (\e -> JE.list e << Set.toList)
-        (JD.map Set.fromList << JD.list)
+        JE.set
+        (\itemDecoder -> JD.map Set.fromList (JD.list itemDecoder))
 
 
 {-| `Codec` between a JSON array of length 2 and an Elm `Tuple`.
@@ -1158,8 +1169,15 @@ fail msg =
 andThen : (a -> Codec b) -> (b -> a) -> Codec a -> Codec b
 andThen dec enc c =
     Codec
-        { decoder = decoder c |> JD.andThen (dec >> decoder)
-        , encoder = encoder c << enc
+        { decoder =
+            decoder c
+                |> JD.andThen
+                    (\v ->
+                        v
+                            |> dec
+                            |> decoder
+                    )
+        , encoder = \v -> encoder c (enc v)
         }
 
 
